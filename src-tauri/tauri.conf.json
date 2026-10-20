@@ -18,6 +18,20 @@
         "height": 600,
         "visible": false,
         "center": true
+      },
+      {
+        "label": "overlay",
+        "url": "index.html#overlay",
+        "width": 240,
+        "height": 64,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false,
+        "resizable": false,
+        "shadow": false,
+        "visible": false
       }
     ],
     "security": {

@@ -12,8 +12,6 @@ use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutEvent, ShortcutState};
 
-use crate::tray::{self, TrayEvent};
-
 /// Registrador real sobre `tauri-plugin-global-shortcut`.
 pub struct PluginRegistrar<R: Runtime>(pub AppHandle<R>);
 
@@ -91,17 +89,32 @@ fn dispatch<R: Runtime>(app: &AppHandle<R>, state: &HotkeyState<R>, action: Dict
         .lock()
         .expect("hotkey poisoned")
         .set_escape(recording);
-    let tray_events: &[TrayEvent] = match action {
-        DictationAction::Start => &[TrayEvent::StartRecording],
-        // Hasta que existan el audio y la transcripción (HU-04/05), terminar
-        // vuelve directamente a reposo.
-        DictationAction::Stop => &[TrayEvent::StopRecording, TrayEvent::ProcessingDone],
-        DictationAction::Cancel => &[TrayEvent::Cancel],
-    };
-    for e in tray_events {
-        let _ = tray::apply(app, *e);
-    }
+    crate::dictation::on_action(app, action);
     let _ = app.emit("dictation", action);
+}
+
+/// Termina la grabación en curso desde fuera del atajo (límite de duración).
+pub fn force_stop<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<HotkeyState<R>>();
+    let action = state
+        .controller
+        .lock()
+        .expect("hotkey poisoned")
+        .force_stop();
+    if let Some(action) = action {
+        dispatch(app, &state, action);
+    }
+}
+
+/// Vuelve a reposo sin acción y libera Esc (el micrófono no arrancó).
+pub fn reset<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<HotkeyState<R>>();
+    state.controller.lock().expect("hotkey poisoned").reset();
+    let _ = state
+        .registry
+        .lock()
+        .expect("hotkey poisoned")
+        .set_escape(false);
 }
 
 /// Cambia el atajo principal. Devuelve un mensaje legible si choca.
