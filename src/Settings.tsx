@@ -13,6 +13,7 @@ export interface AppSettings {
   ai: { cleanup: boolean };
   output: { copy_only: boolean };
   privacy: { enabled: boolean; retention_days: number };
+  feedback: { sounds: boolean };
 }
 
 const MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"];
@@ -76,6 +77,14 @@ export default function Settings() {
             onChange={(e) => set("general", { autostart: e.target.checked })}
           />
           Iniciar con el sistema
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={settings.feedback.sounds}
+            onChange={(e) => set("feedback", { sounds: e.target.checked })}
+          />
+          Sonidos al empezar, terminar y en errores
         </label>
       </section>
 

@@ -161,6 +161,7 @@ mod tests {
         "Result<Vocabulary, String>",
         "AppSettings",
         "Result<AppSettings, String>",
+        "bool",
     ];
 
     fn rust_sources(dir: &std::path::Path, out: &mut Vec<(String, String)>) {

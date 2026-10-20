@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 export interface HistoryEntry {
   id: number;
@@ -23,6 +24,20 @@ export default function History() {
   // Se incrementa para recargar tras borrar.
   const [revision, setRevision] = useState(0);
   const reload = useCallback(() => setRevision((r) => r + 1), []);
+  const [retryAvailable, setRetryAvailable] = useState(false);
+
+  useEffect(() => {
+    invoke<boolean>("dictation_retry_available")
+      .then(setRetryAvailable)
+      .catch(() => {});
+    const unlisten = listen<boolean>("dictation-retry-available", (e) => {
+      setRetryAvailable(e.payload);
+      if (!e.payload) reload();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [reload]);
 
   useEffect(() => {
     let current = true;
@@ -52,6 +67,21 @@ export default function History() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      {retryAvailable && (
+        <div role="alert">
+          El último dictado no se pudo procesar; el audio sigue en memoria.
+          <button
+            onClick={() =>
+              run(async () => {
+                await invoke("dictation_retry");
+                setRetryAvailable(false);
+              }, "Reintentando…")
+            }
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
       {message && <p role="status">{message}</p>}
       {entries.length === 0 ? (
         <p>{query ? "Sin resultados." : "Todavía no hay dictados."}</p>

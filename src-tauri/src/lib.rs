@@ -1,11 +1,14 @@
 pub mod audio;
 pub mod dictation;
+pub mod errors;
 pub mod history;
 pub mod hotkey;
 pub mod llm;
+pub mod logging;
 pub mod modes;
 pub mod output;
 pub mod settings;
+pub mod sounds;
 pub mod stt;
 pub mod tray;
 pub mod vocabulary;
@@ -36,9 +39,17 @@ pub fn run() {
         ))
         .manage(tray::TrayStore::default())
         .manage(dictation::DictationState::default())
+        .manage(logging::Redactions::default())
         .manage(settings::app_keys())
         .manage(llm::CleanupSettings::default())
         .setup(|app| {
+            if let Ok(dir) = app.path().app_log_dir() {
+                logging::init(&dir, app.state::<logging::Redactions>().inner().clone());
+            }
+            tracing::info!(
+                version = env!("CARGO_PKG_VERSION"),
+                "Voice Recorder iniciado"
+            );
             // Solo bandeja / barra de menú: sin icono en el Dock.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -85,7 +96,9 @@ pub fn run() {
             vocabulary::vocabulary_get,
             vocabulary::vocabulary_save,
             settings::settings_get,
-            settings::settings_update
+            settings::settings_update,
+            dictation::dictation_retry_available,
+            dictation::dictation_retry
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
