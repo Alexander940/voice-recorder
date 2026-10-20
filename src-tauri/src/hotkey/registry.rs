@@ -4,6 +4,15 @@ use std::fmt;
 
 pub const ESCAPE: &str = "Escape";
 
+/// Atajo secundario para pasar al siguiente modo.
+pub const fn mode_shortcut() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "Cmd+Option+M"
+    } else {
+        "Ctrl+Alt+M"
+    }
+}
+
 /// Atajo por defecto de la plataforma.
 pub const fn default_shortcut() -> &'static str {
     if cfg!(target_os = "macos") {

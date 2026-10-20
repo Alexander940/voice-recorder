@@ -22,7 +22,7 @@
       {
         "label": "overlay",
         "url": "index.html#overlay",
-        "width": 240,
+        "width": 300,
         "height": 64,
         "decorations": false,
         "transparent": true,

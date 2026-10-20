@@ -11,9 +11,12 @@ use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
+use crate::modes::{Modes, ModesState};
+
 pub const TRAY_ID: &str = "main";
 pub const SETTINGS_WINDOW: &str = "settings";
 const ICON_SIZE: u32 = 32;
+const MODE_PREFIX: &str = "mode:";
 
 /// Estado compartido de la bandeja, gestionado por Tauri.
 #[derive(Default)]
@@ -42,30 +45,69 @@ fn icon(state: TrayState) -> Image<'static> {
     Image::new_owned(icon_rgba(state, ICON_SIZE), ICON_SIZE, ICON_SIZE)
 }
 
-pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+fn menu<R: Runtime>(app: &AppHandle<R>, modes: &ModesState) -> tauri::Result<Menu<R>> {
     let settings = MenuItem::with_id(app, "settings", "Ajustes", true, None::<&str>)?;
     let history = MenuItem::with_id(app, "history", "Historial", true, None::<&str>)?;
-    // Los modos llegan en HU-09; por ahora solo existe "Limpio".
-    let mode_clean =
-        CheckMenuItem::with_id(app, "mode:clean", "Limpio", false, true, None::<&str>)?;
-    let modes = Submenu::with_items(app, "Modo", true, &[&mode_clean])?;
+    let mode_items = modes
+        .modes
+        .iter()
+        .map(|m| {
+            CheckMenuItem::with_id(
+                app,
+                format!("{MODE_PREFIX}{}", m.id),
+                &m.name,
+                true,
+                m.id == modes.active,
+                None::<&str>,
+            )
+        })
+        .collect::<tauri::Result<Vec<_>>>()?;
+    let refs: Vec<&dyn tauri::menu::IsMenuItem<R>> = mode_items
+        .iter()
+        .map(|i| i as &dyn tauri::menu::IsMenuItem<R>)
+        .collect();
+    let mode_menu = Submenu::with_items(app, "Modo", true, &refs)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&settings, &history, &modes, &separator, &quit])?;
+    Menu::with_items(app, &[&settings, &history, &mode_menu, &separator, &quit])
+}
 
+/// Id de menú → id de modo (`mode:email` → `email`).
+pub fn mode_from_menu_id(id: &str) -> Option<&str> {
+    id.strip_prefix(MODE_PREFIX)
+}
+
+pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let modes = app.state::<Modes>().snapshot();
     let state = TrayState::default();
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon(state))
         .tooltip(state.tooltip())
-        .menu(&menu)
+        .menu(&menu(app, &modes)?)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id.as_ref() {
             "settings" => show_window(app, View::Settings),
             "history" => show_window(app, View::History),
             "quit" => app.exit(0),
-            _ => {}
+            id => {
+                if let Some(mode) = mode_from_menu_id(id) {
+                    let mode = mode.to_string();
+                    let r = app.state::<Modes>().update(|s| s.set_active(&mode));
+                    if r.is_ok() {
+                        crate::modes::notify_changed(app);
+                    }
+                }
+            }
         })
         .build(app)?;
+    Ok(())
+}
+
+/// Reconstruye el menú cuando cambian los modos o el activo.
+pub fn rebuild_menu<R: Runtime>(app: &AppHandle<R>, modes: &ModesState) -> tauri::Result<()> {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        tray.set_menu(Some(menu(app, modes)?))?;
+    }
     Ok(())
 }
 
@@ -116,6 +158,12 @@ mod tests {
             );
         }
         assert!(windows.iter().any(|w| w["label"] == SETTINGS_WINDOW));
+    }
+
+    #[test]
+    fn mode_menu_ids_roundtrip() {
+        assert_eq!(mode_from_menu_id("mode:email"), Some("email"));
+        assert_eq!(mode_from_menu_id("settings"), None);
     }
 
     #[test]

@@ -4,7 +4,9 @@ mod controller;
 mod registry;
 
 pub use controller::{DEBOUNCE, DictationAction, HotkeyController, HotkeyInput, HotkeyMode};
-pub use registry::{ESCAPE, HotkeyError, HotkeyRegistry, ShortcutRegistrar, default_shortcut};
+pub use registry::{
+    ESCAPE, HotkeyError, HotkeyRegistry, ShortcutRegistrar, default_shortcut, mode_shortcut,
+};
 
 use std::sync::Mutex;
 use std::time::Instant;
@@ -58,6 +60,10 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) {
     if let Err(e) = registry.set_shortcut(default_shortcut()) {
         let _ = app.emit("hotkey-error", e.to_string());
     }
+    let mut modes_registrar = PluginRegistrar(app.clone());
+    if let Err(e) = modes_registrar.register(mode_shortcut()) {
+        let _ = app.emit("hotkey-error", e.to_string());
+    }
     app.manage(HotkeyState {
         controller: Mutex::new(HotkeyController::new(HotkeyMode::default())),
         registry: Mutex::new(registry),
@@ -65,6 +71,12 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) {
 }
 
 fn on_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &Shortcut, event: ShortcutEvent) {
+    if parse(mode_shortcut()).ok() == Some(*shortcut) {
+        if event.state() == ShortcutState::Pressed {
+            crate::modes::cycle(app);
+        }
+        return;
+    }
     let state = app.state::<HotkeyState<R>>();
     let input = match (parse(ESCAPE).ok() == Some(*shortcut), event.state()) {
         (true, ShortcutState::Pressed) => HotkeyInput::Escape,
@@ -148,6 +160,8 @@ mod tests {
         assert!(parse("Cmd+Option+Space").is_ok());
         assert!(parse("Ctrl+Alt+Space").is_ok());
         assert!(parse(ESCAPE).is_ok());
+        assert!(parse(mode_shortcut()).is_ok());
+        assert!(parse("Cmd+Option+M").is_ok());
     }
 
     #[test]

@@ -8,6 +8,7 @@ use crate::audio::{CpalSource, DEFAULT_MAX_DURATION, Recorder};
 use crate::history::{self, History, NewEntry};
 use crate::hotkey::{self, DictationAction};
 use crate::llm::{AnthropicCleaner, CleanupOutcome, CleanupSettings, TextCleaner, clean_or_raw};
+use crate::modes::Modes;
 use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
 use crate::settings::AppKeys;
 use crate::settings::keys::Provider;
@@ -57,6 +58,8 @@ fn start<R: Runtime>(app: &AppHandle<R>) {
                 .lock()
                 .expect("dictation poisoned") = Some(recorder);
             let _ = tray::apply(app, TrayEvent::StartRecording);
+            let mode = app.state::<Modes>().active().name;
+            let _ = app.emit_to(OVERLAY_WINDOW, "mode-changed", mode);
             show_overlay(app);
         }
         Err(e) => {
@@ -125,9 +128,9 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
     if transcript.text.is_empty() {
         return Ok(());
     }
-    let cleaner = app
-        .state::<CleanupSettings>()
-        .enabled()
+    let mode = app.state::<Modes>().active();
+    let cleaner = mode
+        .wants_llm(app.state::<CleanupSettings>().enabled())
         .then(|| app.state::<AppKeys>().get(Provider::Anthropic))
         .flatten()
         .map(AnthropicCleaner::new);
@@ -135,7 +138,7 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
     let outcome = clean_or_raw(
         cleaner.as_ref().map(|c| c as &dyn TextCleaner),
         &transcript.text,
-        "",
+        &mode.instructions(),
     );
     let llm_latency_ms = cleaner
         .is_some()
@@ -147,8 +150,8 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
         raw_text: transcript.text.clone(),
         final_text: text.clone(),
         mode: match outcome {
-            CleanupOutcome::Cleaned(_) => "clean".into(),
-            CleanupOutcome::Raw { .. } => "raw".into(),
+            CleanupOutcome::Cleaned(_) => mode.id.clone(),
+            CleanupOutcome::Raw { .. } => "literal".into(),
         },
         // WAV PCM de 16 bits a 16 kHz: 32 bytes por milisegundo tras la cabecera.
         duration_ms: (wav.len().saturating_sub(44) / 32) as i64,

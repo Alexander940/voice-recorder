@@ -21,7 +21,7 @@ const entry = (id: number, text: string, mode = "clean"): HistoryEntry => ({
 let db: HistoryEntry[] = [];
 
 beforeEach(() => {
-  db = [entry(2, "Comprar pan"), entry(1, "Reunión con ventas", "raw")];
+  db = [entry(2, "Comprar pan"), entry(1, "Reunión con ventas", "literal")];
   invoke.mockReset();
   invoke.mockImplementation((cmd: string, args: Record<string, unknown>) => {
     if (cmd === "history_list") {
