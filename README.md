@@ -13,7 +13,7 @@ App de escritorio multiplataforma (Tauri 2) para dictar por voz desde cualquier 
 | Todas      | [Rust](https://rustup.rs) (stable) y Node 22+                                                                                                               |
 | Windows    | Visual Studio Build Tools con la carga de trabajo **"Desarrollo para el escritorio con C++"** (MSVC y Windows 10/11 SDK), y WebView2 (viene con Windows 11) |
 | macOS      | Xcode Command Line Tools (`xcode-select --install`)                                                                                                         |
-| Linux      | `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev patchelf`                                                                   |
+| Linux      | `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libxdo-dev patchelf`                                                        |
 
 Para las funciones de IA hacen falta una API key de [Groq](https://console.groq.com) y otra de [Anthropic](https://console.anthropic.com).
 
