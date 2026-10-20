@@ -29,6 +29,7 @@ cpal = "0.18.2"
 hound = "3.5.1"
 tracing = "0.1.44"
 reqwest = { version = "0.13.5", default-features = false, features = ["blocking", "multipart", "json", "native-tls"] }
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -41,5 +42,6 @@ strip = true
 
 [dev-dependencies]
 mockito = "1.7.2"
+regex = "1.13.1"
 tempfile = "3.27.0"
 tracing-test = "0.2.6"

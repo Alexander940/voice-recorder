@@ -7,6 +7,8 @@ use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Runtime};
 use crate::audio::{CpalSource, DEFAULT_MAX_DURATION, Recorder};
 use crate::hotkey::{self, DictationAction};
 use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
+use crate::settings::AppKeys;
+use crate::settings::keys::Provider;
 use crate::stt::{GroqTranscriber, TranscribeOptions, Transcriber};
 use crate::tray::{self, TrayEvent};
 
@@ -111,9 +113,10 @@ fn process<R: Runtime>(app: &AppHandle<R>, wav: Vec<u8>) {
 }
 
 fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<(), String> {
-    // Provisional hasta HU-07 (keyring): la key se lee del entorno.
-    let key = std::env::var("GROQ_API_KEY")
-        .map_err(|_| "Falta la API key de Groq (GROQ_API_KEY)".to_string())?;
+    let key = app
+        .state::<AppKeys>()
+        .get(Provider::Groq)
+        .ok_or_else(|| "Falta la API key de Groq: configúrala en Ajustes".to_string())?;
     let transcript = GroqTranscriber::new(key)
         .transcribe(wav, &TranscribeOptions::default())
         .map_err(|e| e.to_string())?;

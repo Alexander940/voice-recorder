@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import Onboarding, { type KeyStatus } from "./Onboarding";
 
-export type View = "settings" | "history";
+export type View = "settings" | "history" | "onboarding";
 
-const TITLES: Record<View, string> = {
+const TITLES: Record<Exclude<View, "onboarding">, string> = {
   settings: "Ajustes",
   history: "Historial",
 };
@@ -17,6 +18,13 @@ export default function App() {
     invoke<string>("app_version")
       .then(setVersion)
       .catch(() => setVersion(null));
+    // El evento `navigate` del primer arranque puede llegar antes que este
+    // listener; el estado de las keys decide si hace falta el onboarding.
+    invoke<KeyStatus>("get_key_status")
+      .then((s) => {
+        if (!s.groq) setView("onboarding");
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -26,6 +34,14 @@ export default function App() {
       unlisten.then((fn) => fn());
     };
   }, []);
+
+  if (view === "onboarding") {
+    return (
+      <main>
+        <Onboarding onDone={() => setView("settings")} />
+      </main>
+    );
+  }
 
   return (
     <main>

@@ -4,9 +4,12 @@ import App from "./App";
 
 type Handler = (e: { payload: unknown }) => void;
 const handlers: Record<string, Handler> = {};
+let keyStatus = { groq: true, anthropic: true };
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn().mockResolvedValue("0.1.0"),
+  invoke: vi.fn((cmd: string) =>
+    Promise.resolve(cmd === "get_key_status" ? keyStatus : cmd === "app_version" ? "0.1.0" : null),
+  ),
 }));
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -18,6 +21,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 
 describe("App", () => {
   beforeEach(() => {
+    keyStatus = { groq: true, anthropic: true };
     for (const k of Object.keys(handlers)) delete handlers[k];
   });
 
@@ -33,5 +37,13 @@ describe("App", () => {
     await screen.findByTestId("version");
     act(() => handlers["navigate"]({ payload: "history" }));
     expect(screen.getByRole("heading", { name: "Historial" })).toBeInTheDocument();
+  });
+
+  it("sin key de Groq abre el onboarding", async () => {
+    keyStatus = { groq: false, anthropic: false };
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: "Bienvenido a Voice Recorder" }),
+    ).toBeInTheDocument();
   });
 });
