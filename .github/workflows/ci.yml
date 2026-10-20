@@ -1,9 +1,9 @@
 name: CI
 
+# Desactivada en PRs y pushes por consumo de minutos (decisión del usuario 2026-10-20).
+# La validación es local; se puede lanzar a mano desde la pestaña Actions.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
