@@ -369,12 +369,12 @@ mod tests {
         let mut new = old.clone();
         new.privacy.enabled = false;
         new.general.autostart = true;
-        new.hotkey.mode = HotkeyMode::Toggle;
+        new.hotkey.mode = HotkeyMode::Hold;
         let mut fx = Recorder::default();
         apply_changes(&mut fx, Some(&old), &new).unwrap();
         assert_eq!(
             fx.calls,
-            ["mode:Toggle", "history:false:30", "autostart:true"]
+            ["mode:Hold", "history:false:30", "autostart:true"]
         );
     }
 }

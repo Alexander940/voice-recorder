@@ -105,8 +105,8 @@ export default function Settings() {
             value={settings.hotkey.mode}
             onChange={(e) => set("hotkey", { mode: e.target.value as "hold" | "toggle" })}
           >
-            <option value="hold">Mantener pulsado</option>
             <option value="toggle">Pulsar para empezar y terminar</option>
+            <option value="hold">Mantener pulsado</option>
           </select>
         </label>
       </section>

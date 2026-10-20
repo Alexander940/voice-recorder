@@ -32,7 +32,7 @@ App de escritorio multiplataforma (Windows, macOS, Linux) para dictar por voz de
 |---|---|---|
 | Shell de escritorio | Tauri 2 | Binario ligero, multiplataforma |
 | Frontend | React + TypeScript + Vite | UI de ajustes, historial y overlay |
-| Atajo global | `tauri-plugin-global-shortcut` | Push-to-talk (mantener) y alternar |
+| Atajo global | `tauri-plugin-global-shortcut` | Alternar (por defecto) y mantener pulsado |
 | Bandeja | Tray API de Tauri 2 | La app vive en la bandeja |
 | Captura de audio | `cpal` + `hound` | Remuestreo a 16 kHz mono WAV |
 | Voz a texto | Groq API `whisper-large-v3(-turbo)` | `POST /openai/v1/audio/transcriptions` (multipart) vía `reqwest` |

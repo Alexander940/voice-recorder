@@ -143,7 +143,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         <section>
           <h2>Prueba de dictado</h2>
           <p>
-            Mantén <kbd>{isMac() ? "Option+Space" : "Ctrl+Alt+Space"}</kbd>, di algo y suelta.
+            Pulsa <kbd>{isMac() ? "Option+Space" : "Ctrl+Alt+Space"}</kbd>, di algo y vuelve a
+            pulsarlo para terminar.
           </p>
           {transcript !== null && <blockquote data-testid="transcript">{transcript}</blockquote>}
           <button onClick={onDone}>{transcript !== null ? "Terminar" : "Saltar prueba"}</button>
