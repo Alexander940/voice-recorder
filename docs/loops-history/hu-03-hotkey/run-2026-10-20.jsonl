@@ -1,0 +1,3 @@
+{"ts":"2026-10-20T19:08:38Z","run_id":"hu03-2026-10-20","item":"impl","phase":"intent","action":"implementar HotkeyController (hold/toggle/Esc/rebote), registrador con detección de conflictos y wiring con tauri-plugin-global-shortcut"}
+{"ts":"2026-10-20T19:13:57Z","run_id":"hu03-2026-10-20","item":"oracle-local-1","phase":"outcome","action":"oracle local iteración 1","verdict":"pass","evidence":"fmt OK; clippy -D warnings OK; cargo test 32/32 (+1 ignored): controller hold/toggle/Esc/rebote/repetición, registry conflicto/cambio/Esc, parse por plataforma; lint/tsc/vitest OK; smoke: exe vivo 8s sin errores","artifacts":[]}
+{"ts":"2026-10-20T19:13:57Z","run_id":"hu03-2026-10-20","item":"pr","phase":"intent","action":"commit + push + PR que cierra #3 + merge"}

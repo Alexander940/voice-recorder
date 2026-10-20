@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod history;
+pub mod hotkey;
 pub mod llm;
 pub mod output;
 pub mod settings;
@@ -18,12 +19,14 @@ fn app_version() -> &'static str {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
+        .plugin(hotkey::plugin())
         .manage(tray::TrayStore::default())
         .setup(|app| {
             // Solo bandeja / barra de menú: sin icono en el Dock.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             tray::build(app.handle())?;
+            hotkey::init(app.handle());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -36,7 +39,11 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![app_version])
+        .invoke_handler(tauri::generate_handler![
+            app_version,
+            hotkey::set_hotkey,
+            hotkey::set_hotkey_mode
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
