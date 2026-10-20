@@ -16,3 +16,16 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación y la CI pasan (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación y la CI pasan); sin llamadas a APIs de pago. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 2 iteraciones de validación (2026-10-20).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Scaffold Tauri 2 + React/TS + 6 módulos | done | `scripts/check-structure.mjs` OK |
+| Validación local, iteración 1 | parcial | lint, typecheck, vitest y fmt OK; clippy, test y build bloqueados: faltaban MSVC y el Windows SDK |
+| CI de la PR #16 | pass | frontend y rust en Windows, macOS y Linux ([run](https://github.com/Alexander940/voice-recorder/actions/runs/39467803295)) |
+| Validación local, iteración 2 | pass | `tauri build` exit 0 (msi + nsis), clippy y test OK, tras instalar el usuario el componente C++ |
+| Entrega | merged | PR #16 → `25287e7`, #1 cerrada |
+
+**Motivo de salida:** la validación pasó. **Aprendizaje:** el entorno de Windows necesita la carga de trabajo "Desarrollo para el escritorio con C++" (ya documentado en el README). Pendiente: incluir `src-tauri/Cargo.lock` en el repo, lo que se hará en HU-02.
