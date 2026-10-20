@@ -22,3 +22,13 @@ Como HU-14 no publica releases, este loop **no** valida contra GitHub Releases:
 - El endpoint del updater apunta a `https://github.com/Alexander940/voice-recorder/releases/latest/download/latest.json`, pero la validación usa **solo un manifiesto local** (mockito): versión mayor → ofrece la actualización; firma inválida → la rechaza; desactivado → no comprueba; como mucho una comprobación al día (reloj simulado).
 - La verificación de firma se prueba con un **par de claves de prueba** generado en un directorio temporal durante el test. La **clave pública real** para `tauri.conf.json` la genera el usuario con `npx tauri signer generate` (el agente nunca ve la privada); mientras no exista, el updater queda desactivado en la configuración y la app funciona igual.
 - No se valida (riesgo aceptado): una actualización real de extremo a extremo entre dos releases publicadas.
+
+## Outcome
+**Resultado:** ✅ éxito con la enmienda 2, en 1 iteración de validación local (2026-10-21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | pass | cargo test 147/147 (manifiesto local, firma con claves de prueba, programador), vitest 45/45, arranque y build |
+| Entrega | merged | PR #30 → `f51b10b`, #15 cerrada (varios timeouts de red con la API de GitHub; el estado se verificó antes de registrar) |
+
+**Riesgo aceptado:** sin actualización real de extremo a extremo hasta que el usuario genere las claves y publique dos releases.
