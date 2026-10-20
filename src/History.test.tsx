@@ -7,6 +7,17 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invoke(...args),
 }));
 
+type Handler = (e: { payload: unknown }) => void;
+const handlers: Record<string, Handler> = {};
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn((name: string, handler: Handler) => {
+    handlers[name] = handler;
+    return Promise.resolve(() => delete handlers[name]);
+  }),
+}));
+
+let retryAvailable = false;
+
 const entry = (id: number, text: string, mode = "clean"): HistoryEntry => ({
   id,
   created_at: 1_760_000_000_000,
@@ -21,6 +32,7 @@ const entry = (id: number, text: string, mode = "clean"): HistoryEntry => ({
 let db: HistoryEntry[] = [];
 
 beforeEach(() => {
+  retryAvailable = false;
   db = [entry(2, "Comprar pan"), entry(1, "Reunión con ventas", "literal")];
   invoke.mockReset();
   invoke.mockImplementation((cmd: string, args: Record<string, unknown>) => {
@@ -28,6 +40,7 @@ beforeEach(() => {
       const q = String(args.query).toLowerCase();
       return Promise.resolve(db.filter((e) => e.final_text.toLowerCase().includes(q)));
     }
+    if (cmd === "dictation_retry_available") return Promise.resolve(retryAvailable);
     if (cmd === "history_delete") {
       db = db.filter((e) => e.id !== args.id);
       return Promise.resolve(null);
@@ -87,5 +100,24 @@ describe("History", () => {
     invoke.mockRejectedValueOnce("No se pudo pegar");
     await act(async () => fireEvent.click(within(first).getByText("Pegar de nuevo")));
     expect(screen.getByRole("status")).toHaveTextContent("No se pudo pegar");
+  });
+
+  it("muestra el reintento cuando un dictado falló y lo lanza", async () => {
+    retryAvailable = true;
+    render(<History />);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("no se pudo procesar");
+    await act(async () => fireEvent.click(within(alert).getByText("Reintentar")));
+    expect(invoke).toHaveBeenCalledWith("dictation_retry");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("el evento del backend muestra u oculta el reintento", async () => {
+    render(<History />);
+    await screen.findAllByRole("listitem");
+    act(() => handlers["dictation-retry-available"]({ payload: true }));
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    act(() => handlers["dictation-retry-available"]({ payload: false }));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

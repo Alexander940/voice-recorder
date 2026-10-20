@@ -87,6 +87,19 @@ pub struct OutputSettings {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
+pub struct FeedbackSettings {
+    /// Sonidos al empezar, terminar y ante un error.
+    pub sounds: bool,
+}
+
+impl Default for FeedbackSettings {
+    fn default() -> Self {
+        Self { sounds: true }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct AppSettings {
     pub version: u32,
     pub general: GeneralSettings,
@@ -96,6 +109,7 @@ pub struct AppSettings {
     pub ai: AiSettings,
     pub output: OutputSettings,
     pub privacy: HistorySettings,
+    pub feedback: FeedbackSettings,
 }
 
 impl Default for AppSettings {
@@ -109,6 +123,7 @@ impl Default for AppSettings {
             ai: AiSettings::default(),
             output: OutputSettings::default(),
             privacy: HistorySettings::default(),
+            feedback: FeedbackSettings::default(),
         }
     }
 }
@@ -240,6 +255,7 @@ mod tests {
         assert_eq!(s.hotkey.shortcut, default_shortcut());
         assert!(s.ai.cleanup);
         assert_eq!(s.audio.max_duration_secs, 300);
+        assert!(s.feedback.sounds);
         assert!(s.validate().is_ok());
     }
 

@@ -16,6 +16,7 @@ const DEFAULTS: AppSettings = {
   ai: { cleanup: true },
   output: { copy_only: false },
   privacy: { enabled: true, retention_days: 30 },
+  feedback: { sounds: true },
 };
 
 beforeEach(() => {
@@ -69,11 +70,13 @@ describe("Settings", () => {
     }
   });
 
-  it("General: inicio con el sistema", async () => {
+  it("General: inicio con el sistema y sonidos", async () => {
     await renderSettings();
     fireEvent.click(screen.getByLabelText("Iniciar con el sistema"));
+    fireEvent.click(screen.getByLabelText("Sonidos al empezar, terminar y en errores"));
     await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
     expect(lastUpdate().general.autostart).toBe(true);
+    expect(lastUpdate().feedback.sounds).toBe(false);
     expect(screen.getByRole("status")).toHaveTextContent("Ajustes guardados");
   });
 
