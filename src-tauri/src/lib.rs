@@ -17,6 +17,7 @@ fn app_version() -> &'static str {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .manage(tray::TrayStore::default())
         .setup(|app| {
             // Solo bandeja / barra de menú: sin icono en el Dock.
