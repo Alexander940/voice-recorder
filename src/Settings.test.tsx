@@ -7,6 +7,11 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...args: unknown[]) => invoke(...args),
 }));
 
+// La sección de actualizaciones escucha eventos del backend.
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
 const DEFAULTS: AppSettings = {
   version: 1,
   general: { autostart: false },

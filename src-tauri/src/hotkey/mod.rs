@@ -154,11 +154,11 @@ mod tests {
     #[test]
     fn default_and_escape_shortcuts_parse() {
         assert!(parse(default_shortcut()).is_ok());
-        assert!(parse("Cmd+Option+Space").is_ok());
+        assert!(parse("Option+Space").is_ok());
         assert!(parse("Ctrl+Alt+Space").is_ok());
         assert!(parse(ESCAPE).is_ok());
         assert!(parse(mode_shortcut()).is_ok());
-        assert!(parse("Cmd+Option+M").is_ok());
+        assert!(parse("Ctrl+Option+M").is_ok());
     }
 
     #[test]
