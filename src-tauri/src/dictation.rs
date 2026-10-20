@@ -1,4 +1,4 @@
-//! Orquesta un dictado: atajo → audio → (transcripción, HU-05) → salida.
+//! Orquesta un dictado: atajo → audio → transcripción → salida.
 
 use std::sync::Mutex;
 
@@ -6,6 +6,8 @@ use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Runtime};
 
 use crate::audio::{CpalSource, DEFAULT_MAX_DURATION, Recorder};
 use crate::hotkey::{self, DictationAction};
+use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
+use crate::stt::{GroqTranscriber, TranscribeOptions, Transcriber};
 use crate::tray::{self, TrayEvent};
 
 pub const OVERLAY_WINDOW: &str = "overlay";
@@ -79,8 +81,9 @@ fn stop<R: Runtime>(app: &AppHandle<R>) {
             let _ = tray::apply(app, TrayEvent::StopRecording);
             save_debug_wav(app, &wav);
             let _ = app.emit("recording-finished", RecordingFinished { bytes: wav.len() });
-            // La transcripción llega en HU-05; por ahora se termina aquí.
-            let _ = tray::apply(app, TrayEvent::ProcessingDone);
+            // La red no debe bloquear el hilo del atajo.
+            let app = app.clone();
+            std::thread::spawn(move || process(&app, wav));
         }
         Ok(None) => {
             // Demasiado corto: se descarta en silencio.
@@ -91,6 +94,39 @@ fn stop<R: Runtime>(app: &AppHandle<R>) {
             let _ = app.emit("dictation-error", e.to_string());
         }
     }
+}
+
+/// Transcribe y entrega el texto. Corre en su propio hilo.
+fn process<R: Runtime>(app: &AppHandle<R>, wav: Vec<u8>) {
+    match transcribe_and_deliver(app, &wav) {
+        Ok(()) => {
+            let _ = tray::apply(app, TrayEvent::ProcessingDone);
+        }
+        Err(message) => {
+            let _ = tray::apply(app, TrayEvent::Error);
+            TauriNotifier(app.clone()).notify("Error de dictado", &message);
+            let _ = app.emit("dictation-error", message);
+        }
+    }
+}
+
+fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<(), String> {
+    // Provisional hasta HU-07 (keyring): la key se lee del entorno.
+    let key = std::env::var("GROQ_API_KEY")
+        .map_err(|_| "Falta la API key de Groq (GROQ_API_KEY)".to_string())?;
+    let transcript = GroqTranscriber::new(key)
+        .transcribe(wav, &TranscribeOptions::default())
+        .map_err(|e| e.to_string())?;
+    if transcript.text.is_empty() {
+        return Ok(());
+    }
+    let _ = app.emit("transcription", &transcript.text);
+    let clipboard = SystemClipboard::new().map_err(|e| e.to_string())?;
+    let keys = EnigoKeys::new().map_err(|e| e.to_string())?;
+    Paster::new(clipboard, keys, TauriNotifier(app.clone()))
+        .deliver(&transcript.text, OutputMode::Paste)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 fn cancel<R: Runtime>(app: &AppHandle<R>) {
