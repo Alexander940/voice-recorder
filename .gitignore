@@ -14,5 +14,10 @@ src-tauri/gen/
 # OS / editors
 .DS_Store
 Thumbs.db
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
+
+# Tauri
+src-tauri/gen/schemas
+*.log
