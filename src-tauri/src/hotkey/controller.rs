@@ -69,6 +69,21 @@ impl HotkeyController {
         }
     }
 
+    /// Termina la grabación desde fuera (p. ej. límite de duración alcanzado).
+    pub fn force_stop(&mut self) -> Option<DictationAction> {
+        if self.is_recording() {
+            self.state = State::Idle;
+            Some(DictationAction::Stop)
+        } else {
+            None
+        }
+    }
+
+    /// Vuelve a reposo sin emitir acción (p. ej. el micrófono no arrancó).
+    pub fn reset(&mut self) {
+        self.state = State::Idle;
+    }
+
     pub fn handle(&mut self, input: HotkeyInput) -> Option<DictationAction> {
         use DictationAction::*;
         use HotkeyInput::*;
@@ -183,6 +198,24 @@ mod tests {
     #[test]
     fn release_while_idle_is_noop() {
         let mut c = HotkeyController::new(HotkeyMode::Hold);
+        assert_eq!(c.handle(Released(Instant::now())), None);
+    }
+
+    #[test]
+    fn force_stop_only_acts_while_recording() {
+        let mut c = HotkeyController::new(HotkeyMode::Toggle);
+        assert_eq!(c.force_stop(), None);
+        c.handle(Pressed(Instant::now()));
+        assert_eq!(c.force_stop(), Some(Stop));
+        assert!(!c.is_recording());
+    }
+
+    #[test]
+    fn reset_returns_to_idle_without_action() {
+        let mut c = HotkeyController::new(HotkeyMode::Hold);
+        c.handle(Pressed(Instant::now()));
+        c.reset();
+        assert!(!c.is_recording());
         assert_eq!(c.handle(Released(Instant::now())), None);
     }
 

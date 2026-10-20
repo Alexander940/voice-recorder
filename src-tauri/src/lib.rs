@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod dictation;
 pub mod history;
 pub mod hotkey;
 pub mod llm;
@@ -15,12 +16,19 @@ fn app_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+/// Micrófonos disponibles (para los ajustes, HU-12).
+#[tauri::command]
+fn list_input_devices() -> Vec<String> {
+    audio::input_device_names()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(hotkey::plugin())
         .manage(tray::TrayStore::default())
+        .manage(dictation::DictationState::default())
         .setup(|app| {
             // Solo bandeja / barra de menú: sin icono en el Dock.
             #[cfg(target_os = "macos")]
@@ -42,7 +50,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_version,
             hotkey::set_hotkey,
-            hotkey::set_hotkey_mode
+            hotkey::set_hotkey_mode,
+            list_input_devices
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

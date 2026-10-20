@@ -1,0 +1,71 @@
+:root {
+  --overlay-bg: rgba(24, 24, 27, 0.92);
+  --overlay-fg: #f4f4f5;
+  --overlay-bar: rgba(244, 244, 245, 0.25);
+  --overlay-bar-on: #f4f4f5;
+  --overlay-rec: #e53e3e;
+}
+
+html,
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.overlay {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100vw;
+  height: 100vh;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--overlay-bg);
+  color: var(--overlay-fg);
+  font:
+    600 14px/1 system-ui,
+    sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.overlay-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--overlay-rec);
+  animation: overlay-pulse 1.2s ease-in-out infinite;
+}
+
+.overlay-bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  height: 24px;
+}
+
+.bar {
+  flex: 1;
+  height: 30%;
+  border-radius: 2px;
+  background: var(--overlay-bar);
+  transition: height 60ms linear;
+}
+
+.bar.on {
+  height: 100%;
+  background: var(--overlay-bar-on);
+}
+
+.overlay-time {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes overlay-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
