@@ -16,3 +16,16 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente. Checklist manual: pegar en el navegador, VS Code, Word, Slack y el Bloc de notas.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); sin llamadas a APIs de pago. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 3 iteraciones de validación local (2026-10-20).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | fail | Rust OK, pero prettier falló en README.md |
+| Validación local, iteración 2 | pass | lint, tsc, vitest, fmt, clippy, test 6/6 y `clipboard_roundtrip` en Windows |
+| Rebase sobre HU-02 + iteración 3 | pass | conflictos en lib.rs y Cargo.lock resueltos; cargo test 16/16 |
+| Entrega | merged | PR #18 → `d2dbe00`, #6 cerrada |
+
+**Incidencia:** el primer intento de merge falló, y el Outcome se escribió antes de verificar el estado (`0a86f00`); se revirtió en `cf600a9`. Desde entonces el registro del merge exige `state == MERGED`.
+**Motivo de salida:** la validación pasó. Pendiente: la checklist manual de pegado en apps reales (con HU-08).
