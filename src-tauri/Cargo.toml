@@ -32,6 +32,8 @@ reqwest = { version = "0.13.5", default-features = false, features = ["blocking"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 regex = "1.13.1"
+tauri-plugin-store = "2.5.0"
+tauri-plugin-autostart = "2.7.0"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
@@ -47,3 +49,10 @@ mockito = "1.7.2"
 tempfile = "3.27.0"
 tracing-test = "0.2.6"
 whatlang = "0.18.0"
+
+# Menos información de depuración: los PDB de debug/test llenaban el disco.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

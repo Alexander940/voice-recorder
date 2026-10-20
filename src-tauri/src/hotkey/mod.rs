@@ -55,11 +55,9 @@ pub fn plugin<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
 }
 
 /// Registra el atajo por defecto. Un conflicto se notifica pero no impide arrancar.
+/// Prepara el estado del atajo. El atajo principal lo registran los ajustes al arrancar.
 pub fn init<R: Runtime>(app: &AppHandle<R>) {
-    let mut registry = HotkeyRegistry::new(PluginRegistrar(app.clone()));
-    if let Err(e) = registry.set_shortcut(default_shortcut()) {
-        let _ = app.emit("hotkey-error", e.to_string());
-    }
+    let registry = HotkeyRegistry::new(PluginRegistrar(app.clone()));
     let mut modes_registrar = PluginRegistrar(app.clone());
     if let Err(e) = modes_registrar.register(mode_shortcut()) {
         let _ = app.emit("hotkey-error", e.to_string());
@@ -130,23 +128,22 @@ pub fn reset<R: Runtime>(app: &AppHandle<R>) {
 }
 
 /// Cambia el atajo principal. Devuelve un mensaje legible si choca.
-#[tauri::command]
-pub fn set_hotkey(app: AppHandle, shortcut: String) -> Result<(), String> {
-    let state = app.state::<HotkeyState<tauri::Wry>>();
+/// Cambia el atajo principal. Devuelve un mensaje legible si choca.
+pub fn set_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut: &str) -> Result<(), String> {
+    let state = app.state::<HotkeyState<R>>();
     let mut registry = state.registry.lock().expect("hotkey poisoned");
-    registry.set_shortcut(&shortcut).map_err(|e| e.to_string())
+    registry.set_shortcut(shortcut).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub fn set_hotkey_mode(app: AppHandle, mode: HotkeyMode) {
-    let state = app.state::<HotkeyState<tauri::Wry>>();
+pub fn set_mode<R: Runtime>(app: &AppHandle<R>, mode: HotkeyMode) {
+    let state = app.state::<HotkeyState<R>>();
     let action = state
         .controller
         .lock()
         .expect("hotkey poisoned")
         .set_mode(mode);
     if let Some(action) = action {
-        dispatch(&app, &state, action);
+        dispatch(app, &state, action);
     }
 }
 
