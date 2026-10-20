@@ -19,3 +19,13 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); llamadas reales a Groq/Anthropic solo con `LIVE_API_TESTS=1` y las keys en variables de entorno (nunca en el repo), con un tope de 1 USD por issue sumado en el log. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 1 iteración de validación local (2026-10-21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | pass | cargo test 71/71 (incluido el keyring real de Windows y el test estático de comandos), vitest 12/12, keys reales válidas, arranque OK |
+| Entrega | merged | PR #22 → `11fc8e7`, #7 cerrada |
+
+**Desviación menor:** la ida y vuelta se hizo contra el Administrador de credenciales real de Windows en lugar del backend simulado del crate, porque el simulado no persiste entre instancias de `Entry`. Es una validación más estricta. Se usa keyring 3.6 (la 4.x tiene otra API).
