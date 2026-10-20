@@ -28,6 +28,13 @@ describe("Overlay", () => {
     expect(screen.getByTestId("level")).toHaveAttribute("data-active", "12");
   });
 
+  it("muestra el modo activo", () => {
+    render(<Overlay />);
+    expect(screen.queryByTestId("mode")).toBeNull();
+    act(() => handlers["mode-changed"]({ payload: "Email" }));
+    expect(screen.getByTestId("mode")).toHaveTextContent("Email");
+  });
+
   it("formatea minutos y segundos", () => {
     expect(formatElapsed(0)).toBe("0:00");
     expect(formatElapsed(9_999)).toBe("0:09");

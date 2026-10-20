@@ -62,7 +62,7 @@ export default function History() {
               <p>{e.final_text}</p>
               <small>
                 {formatDate(e.created_at)} · {(e.duration_ms / 1000).toFixed(1)} s ·{" "}
-                {e.mode === "clean" ? "limpiado" : "literal"}
+                {e.mode === "literal" ? "literal" : `modo ${e.mode}`}
               </small>
               <div>
                 <button

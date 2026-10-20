@@ -60,6 +60,12 @@ body {
   background: var(--overlay-bar-on);
 }
 
+.overlay-mode {
+  font-size: 12px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
 .overlay-time {
   font-variant-numeric: tabular-nums;
 }

@@ -15,7 +15,9 @@ vi.mock("@tauri-apps/api/core", () => ({
           ? "0.1.0"
           : cmd === "history_list"
             ? []
-            : null,
+            : cmd === "modes_list"
+              ? { modes: [], active: "clean" }
+              : null,
     ),
   ),
 }));

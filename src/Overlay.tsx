@@ -19,14 +19,17 @@ export function formatElapsed(ms: number): string {
 export default function Overlay() {
   const [level, setLevel] = useState(0);
   const [elapsed, setElapsed] = useState(0);
+  const [mode, setMode] = useState<string | null>(null);
 
   useEffect(() => {
     const unlisten = listen<LevelEvent>("audio-level", (e) => {
       setLevel(e.payload.level);
       setElapsed(e.payload.elapsed_ms);
     });
+    const unlistenMode = listen<string>("mode-changed", (e) => setMode(e.payload));
     return () => {
       unlisten.then((fn) => fn());
+      unlistenMode.then((fn) => fn());
     };
   }, []);
 
@@ -40,6 +43,11 @@ export default function Overlay() {
           <span key={i} className={i < active ? "bar on" : "bar"} />
         ))}
       </div>
+      {mode && (
+        <span className="overlay-mode" data-testid="mode">
+          {mode}
+        </span>
+      )}
       <span className="overlay-time" data-testid="elapsed">
         {formatElapsed(elapsed)}
       </span>

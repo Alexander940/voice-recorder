@@ -3,6 +3,7 @@ pub mod dictation;
 pub mod history;
 pub mod hotkey;
 pub mod llm;
+pub mod modes;
 pub mod output;
 pub mod settings;
 pub mod stt;
@@ -36,6 +37,7 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             app.manage(history::History::open(app.handle()));
+            app.manage(modes::Modes::open(app.handle()));
             tray::build(app.handle())?;
             hotkey::init(app.handle());
             // Primer arranque: sin key de Groq no se puede dictar.
@@ -67,7 +69,12 @@ pub fn run() {
             history::history_delete,
             history::history_get_settings,
             history::history_set_settings,
-            history::history_deliver
+            history::history_deliver,
+            modes::modes_list,
+            modes::modes_set_active,
+            modes::modes_save,
+            modes::modes_duplicate,
+            modes::modes_delete
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
