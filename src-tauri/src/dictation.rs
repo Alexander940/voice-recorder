@@ -6,6 +6,7 @@ use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Runtime};
 
 use crate::audio::{CpalSource, DEFAULT_MAX_DURATION, Recorder};
 use crate::hotkey::{self, DictationAction};
+use crate::llm::{AnthropicCleaner, CleanupSettings, TextCleaner, clean_or_raw};
 use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
 use crate::settings::AppKeys;
 use crate::settings::keys::Provider;
@@ -123,11 +124,23 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
     if transcript.text.is_empty() {
         return Ok(());
     }
-    let _ = app.emit("transcription", &transcript.text);
+    let cleaner = app
+        .state::<CleanupSettings>()
+        .enabled()
+        .then(|| app.state::<AppKeys>().get(Provider::Anthropic))
+        .flatten()
+        .map(AnthropicCleaner::new);
+    let outcome = clean_or_raw(
+        cleaner.as_ref().map(|c| c as &dyn TextCleaner),
+        &transcript.text,
+        "",
+    );
+    let text = outcome.text().to_string();
+    let _ = app.emit("transcription", &text);
     let clipboard = SystemClipboard::new().map_err(|e| e.to_string())?;
     let keys = EnigoKeys::new().map_err(|e| e.to_string())?;
     Paster::new(clipboard, keys, TauriNotifier(app.clone()))
-        .deliver(&transcript.text, OutputMode::Paste)
+        .deliver(&text, OutputMode::Paste)
         .map(|_| ())
         .map_err(|e| e.to_string())
 }

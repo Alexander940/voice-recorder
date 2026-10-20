@@ -30,6 +30,7 @@ pub fn run() {
         .manage(tray::TrayStore::default())
         .manage(dictation::DictationState::default())
         .manage(settings::app_keys())
+        .manage(llm::CleanupSettings::default())
         .setup(|app| {
             // Solo bandeja / barra de menú: sin icono en el Dock.
             #[cfg(target_os = "macos")]
@@ -59,7 +60,8 @@ pub fn run() {
             list_input_devices,
             settings::get_key_status,
             settings::save_api_key,
-            settings::delete_api_key
+            settings::delete_api_key,
+            llm::set_cleanup_enabled
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
