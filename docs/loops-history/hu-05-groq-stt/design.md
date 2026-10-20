@@ -1,5 +1,5 @@
 # Inner Loop: HU-05 — Transcripción con Groq Whisper
-> **Status:** APPROVED 2026-10-20 · **ENMIENDA 2026-10-20 pendiente de aprobación** (validación solo local)
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local)
 
 **Issue:** [#5](https://github.com/Alexander940/voice-recorder/issues/5)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)

@@ -1,5 +1,5 @@
 # Inner Loop: HU-12 — Ventana de ajustes
-> **Status:** APPROVED 2026-10-20 · **ENMIENDA 2026-10-20 pendiente de aprobación** (validación solo local)
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local)
 
 **Issue:** [#12](https://github.com/Alexander940/voice-recorder/issues/12)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)

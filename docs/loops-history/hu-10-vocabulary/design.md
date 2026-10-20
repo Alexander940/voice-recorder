@@ -1,5 +1,5 @@
 # Inner Loop: HU-10 — Vocabulario personalizado
-> **Status:** APPROVED 2026-10-20 · **ENMIENDA 2026-10-20 pendiente de aprobación** (validación solo local)
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local)
 
 **Issue:** [#10](https://github.com/Alexander940/voice-recorder/issues/10)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)

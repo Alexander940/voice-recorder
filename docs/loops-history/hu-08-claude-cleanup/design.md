@@ -1,5 +1,5 @@
 # Inner Loop: HU-08 — Limpieza con Claude Haiku 5.5
-> **Status:** APPROVED 2026-10-20 · **ENMIENDA 2026-10-20 pendiente de aprobación** (validación solo local)
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local)
 
 **Issue:** [#8](https://github.com/Alexander940/voice-recorder/issues/8)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)

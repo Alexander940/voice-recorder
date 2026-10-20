@@ -1,5 +1,5 @@
 # Inner Loop: HU-02 — App residente en la bandeja
-> **Status:** APPROVED 2026-10-20 · **ENMIENDA 2026-10-20 pendiente de aprobación** (validación solo local)
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local)
 
 **Issue:** [#2](https://github.com/Alexander940/voice-recorder/issues/2)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)
