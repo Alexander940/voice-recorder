@@ -1,8 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability de la ventana de ajustes",
+  "windows": [
+    "settings"
+  ],
   "permissions": [
     "core:default"
   ]
