@@ -16,3 +16,16 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); llamadas reales a Groq/Anthropic solo con `LIVE_API_TESTS=1` y las keys en variables de entorno (nunca en el repo), con un tope de 1 USD por issue sumado en el log. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 2 iteraciones locales más el test en vivo (2026-10-20 / 21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | fail | test de reintento no determinista y CR literales en el test |
+| Validación local, iteración 2 | pass (sin API real) | cargo test 61/61, clippy, lint, tsc y vitest |
+| Test en vivo, intentos 1–2 | bloqueado | 401: la key no era de Groq (era de otro tipo y después de xAI). Gasto 0 |
+| Test en vivo, intento 3 | pass | WER 0,036, 2,9 s, ~/usr/bin/bash,0001 |
+| Entrega | merged | PR #21 → `0783b89`, #5 cerrada |
+
+**Motivo de salida:** la validación pasó. **Aprendizaje:** Groq (con q) ≠ Grok/xAI; antes de llamar a la API se comprueba el prefijo `gsk_`. La latencia de 2,9 s supera el objetivo de 1,5 s del plan; se revisará en HU-08.
