@@ -29,6 +29,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(hotkey::plugin())
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(tray::TrayStore::default())
         .manage(dictation::DictationState::default())
         .manage(settings::app_keys())
@@ -42,6 +47,8 @@ pub fn run() {
             app.manage(vocabulary::VocabularyStore::open(app.handle()));
             tray::build(app.handle())?;
             hotkey::init(app.handle());
+            // Después del atajo y el historial: los ajustes los configuran.
+            settings::init(app.handle());
             // Primer arranque: sin key de Groq no se puede dictar.
             if !app.state::<settings::AppKeys>().status().groq {
                 tray::show_window(app.handle(), tray::View::Onboarding);
@@ -60,8 +67,6 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_version,
-            hotkey::set_hotkey,
-            hotkey::set_hotkey_mode,
             list_input_devices,
             settings::get_key_status,
             settings::save_api_key,
@@ -78,7 +83,9 @@ pub fn run() {
             modes::modes_duplicate,
             modes::modes_delete,
             vocabulary::vocabulary_get,
-            vocabulary::vocabulary_save
+            vocabulary::vocabulary_save,
+            settings::settings_get,
+            settings::settings_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

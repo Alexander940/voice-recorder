@@ -1,9 +1,113 @@
 //! Configuración persistente y API keys en el keyring (HU-07, HU-12).
 
+pub mod app;
 pub mod keys;
 
+pub use app::{AppSettings, SettingsEffects, apply_changes};
+
+use std::sync::Mutex;
+
 use keys::{HttpValidator, KEYRING_SERVICE, KeyManager, KeyStatus, KeyringStore, Provider};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, Runtime, State};
+use tauri_plugin_autostart::ManagerExt;
+use tauri_plugin_store::StoreExt;
+
+use crate::history::{History, HistorySettings};
+use crate::hotkey::{self, HotkeyMode, default_shortcut};
+use crate::llm::CleanupSettings;
+
+const STORE_FILE: &str = "settings.json";
+const STORE_KEY: &str = "settings";
+
+/// Ajustes vigentes de la app en marcha.
+#[derive(Default)]
+pub struct SettingsState(pub Mutex<AppSettings>);
+
+impl SettingsState {
+    pub fn get(&self) -> AppSettings {
+        self.0.lock().expect("settings poisoned").clone()
+    }
+}
+
+/// Efectos reales sobre la app.
+struct TauriEffects<'a, R: Runtime>(&'a AppHandle<R>);
+
+impl<R: Runtime> SettingsEffects for TauriEffects<'_, R> {
+    fn set_shortcut(&mut self, shortcut: &str) -> Result<(), String> {
+        hotkey::set_shortcut(self.0, shortcut)
+    }
+    fn set_hotkey_mode(&mut self, mode: HotkeyMode) {
+        hotkey::set_mode(self.0, mode);
+    }
+    fn set_cleanup(&mut self, enabled: bool) {
+        self.0.state::<CleanupSettings>().set_enabled(enabled);
+    }
+    fn set_history(&mut self, settings: HistorySettings) {
+        self.0.state::<History>().set_settings(settings);
+    }
+    fn set_autostart(&mut self, enabled: bool) -> Result<(), String> {
+        let launcher = self.0.autolaunch();
+        let current = launcher.is_enabled().unwrap_or(!enabled);
+        if current == enabled {
+            return Ok(());
+        }
+        if enabled {
+            launcher.enable()
+        } else {
+            launcher.disable()
+        }
+        .map_err(|e| format!("No se pudo cambiar el inicio automático: {e}"))
+    }
+}
+
+fn load<R: Runtime>(app: &AppHandle<R>) -> AppSettings {
+    app.store(STORE_FILE)
+        .ok()
+        .and_then(|store| store.get(STORE_KEY))
+        .map(AppSettings::from_json)
+        .unwrap_or_default()
+}
+
+fn persist<R: Runtime>(app: &AppHandle<R>, settings: &AppSettings) -> Result<(), String> {
+    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    store.set(
+        STORE_KEY,
+        serde_json::to_value(settings).map_err(|e| e.to_string())?,
+    );
+    store.save().map_err(|e| e.to_string())
+}
+
+/// Carga y aplica los ajustes al arrancar. Si el atajo guardado choca, se
+/// intenta el predeterminado y se avisa.
+pub fn init<R: Runtime>(app: &AppHandle<R>) {
+    let mut settings = load(app);
+    if let Err(e) = apply_changes(&mut TauriEffects(app), None, &settings) {
+        let _ = app.emit("hotkey-error", e);
+        settings.hotkey.shortcut = default_shortcut().into();
+        if let Err(e) = apply_changes(&mut TauriEffects(app), None, &settings) {
+            let _ = app.emit("hotkey-error", e);
+        }
+    }
+    app.manage(SettingsState(Mutex::new(settings)));
+}
+
+#[tauri::command]
+pub fn settings_get(state: State<'_, SettingsState>) -> AppSettings {
+    state.get()
+}
+
+/// Valida, aplica en caliente y persiste. Si algo falla, nada cambia.
+#[tauri::command]
+pub fn settings_update(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
+    settings.validate()?;
+    let state = app.state::<SettingsState>();
+    let mut current = state.0.lock().expect("settings poisoned");
+    apply_changes(&mut TauriEffects(&app), Some(&current), &settings)?;
+    persist(&app, &settings)?;
+    *current = settings.clone();
+    let _ = app.emit("settings-changed", &settings);
+    Ok(settings)
+}
 
 pub type AppKeys = KeyManager<KeyringStore, HttpValidator>;
 
@@ -55,6 +159,8 @@ mod tests {
         "Result<ModesState, String>",
         "Vocabulary",
         "Result<Vocabulary, String>",
+        "AppSettings",
+        "Result<AppSettings, String>",
     ];
 
     fn rust_sources(dir: &std::path::Path, out: &mut Vec<(String, String)>) {

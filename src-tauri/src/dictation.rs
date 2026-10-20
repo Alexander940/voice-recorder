@@ -4,13 +4,16 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Runtime};
 
-use crate::audio::{CpalSource, DEFAULT_MAX_DURATION, Recorder};
+use std::time::Duration;
+
+use crate::audio::{CpalSource, Recorder};
 use crate::history::{self, History, NewEntry};
 use crate::hotkey::{self, DictationAction};
 use crate::llm::{AnthropicCleaner, CleanupOutcome, CleanupSettings, TextCleaner, clean_or_raw};
 use crate::modes::Modes;
 use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
 use crate::settings::AppKeys;
+use crate::settings::SettingsState;
 use crate::settings::keys::Provider;
 use crate::stt::{GroqTranscriber, TranscribeOptions, Transcriber};
 use crate::tray::{self, TrayEvent};
@@ -39,10 +42,11 @@ pub fn on_action<R: Runtime>(app: &AppHandle<R>, action: DictationAction) {
 fn start<R: Runtime>(app: &AppHandle<R>) {
     let level_app = app.clone();
     let limit_app = app.clone();
-    let result = CpalSource::new(None).and_then(|source| {
+    let settings = app.state::<SettingsState>().get();
+    let result = CpalSource::new(settings.audio.device.as_deref()).and_then(|source| {
         Recorder::start(
             source,
-            DEFAULT_MAX_DURATION,
+            Duration::from_secs(settings.audio.max_duration_secs),
             move |e| {
                 let _ = level_app.emit_to(OVERLAY_WINDOW, "audio-level", e);
             },
@@ -124,12 +128,14 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
         .get(Provider::Groq)
         .ok_or_else(|| "Falta la API key de Groq: configúrala en Ajustes".to_string())?;
     let vocabulary = app.state::<VocabularyStore>().get();
+    let settings = app.state::<SettingsState>().get();
     let transcript = GroqTranscriber::new(key)
         .transcribe(
             wav,
             &TranscribeOptions {
+                model: settings.transcription.model.clone(),
+                language: settings.transcription.language.clone(),
                 prompt: vocabulary.whisper_prompt(),
-                ..Default::default()
             },
         )
         .map_err(|e| e.to_string())?;
@@ -171,7 +177,14 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
     let clipboard = SystemClipboard::new().map_err(|e| e.to_string())?;
     let keys = EnigoKeys::new().map_err(|e| e.to_string())?;
     Paster::new(clipboard, keys, TauriNotifier(app.clone()))
-        .deliver(&text, OutputMode::Paste)
+        .deliver(
+            &text,
+            if settings.output.copy_only {
+                OutputMode::CopyOnly
+            } else {
+                OutputMode::Paste
+            },
+        )
         .map(|_| ())
         .map_err(|e| e.to_string())
 }
