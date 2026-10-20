@@ -16,3 +16,15 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); sin llamadas a APIs de pago. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 3 iteraciones de validación local (2026-10-21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | fail | 2 avisos de clippy + **disco lleno** (target/ de 27,9 GB) → cargo clean y menos información de depuración |
+| Validación local, iteración 2 | fail | tsc: `Array.at` con lib ES2020 |
+| Validación local, iteración 3 | pass | cargo test 125/125, clippy, lint, tsc, vitest 37/37 y arranque |
+| Entrega | merged | PR #27 → `1fe066e`, #12 cerrada |
+
+**Incidencia:** el disco C: llegó a 0 GB libres por los artefactos de compilación acumulados en los loops. Se liberaron 24,8 GB con `cargo clean` (todo regenerable) y se ajustó el perfil dev.
