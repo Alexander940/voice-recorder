@@ -32,3 +32,13 @@ Decisión del usuario: no gastar minutos de Actions. **Sustituye** a la validaci
 
 **No se valida (riesgo aceptado):** que macOS y Linux compilen, la firma real y la publicación. Quedan para cuando el usuario lance el workflow a mano.
 **Irreversible actions:** ninguna nueva. **No** se crean tags ni releases ni se lanza el workflow; los certificados y secretos los gestiona el usuario.
+
+## Outcome
+**Resultado:** ✅ éxito con la enmienda 2, en 1 iteración de validación local (2026-10-21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | pass | actionlint OK; build de Windows → msi 4,13 MiB + nsis 2,94 MiB; tests de bundle 3/3; resto de la validación común en verde |
+| Entrega | merged | PR # → `4c27b4c`, #14 cerrada (los dos primeros intentos de crear la PR fallaron por timeouts de red) |
+
+**Riesgo aceptado (pendiente del usuario):** builds de macOS y Linux, firma real y publicación de la release.
