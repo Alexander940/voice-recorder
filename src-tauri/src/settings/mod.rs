@@ -49,6 +49,8 @@ mod tests {
         "Result<(), String>",
         "KeyStatus",
         "Result<KeyStatus, String>",
+        "Vec<HistoryEntry>",
+        "HistorySettings",
     ];
 
     fn rust_sources(dir: &std::path::Path, out: &mut Vec<(String, String)>) {

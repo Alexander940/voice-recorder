@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import History from "./History";
 import Onboarding, { type KeyStatus } from "./Onboarding";
 
 export type View = "settings" | "history" | "onboarding";
@@ -47,7 +48,7 @@ export default function App() {
     <main>
       <h1>Voice Recorder</h1>
       <h2>{TITLES[view]}</h2>
-      <p>En construcción.</p>
+      {view === "history" ? <History /> : <p>En construcción.</p>}
       {version && <p data-testid="version">v{version}</p>}
     </main>
   );

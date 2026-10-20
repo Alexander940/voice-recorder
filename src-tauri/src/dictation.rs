@@ -5,8 +5,9 @@ use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Runtime};
 
 use crate::audio::{CpalSource, DEFAULT_MAX_DURATION, Recorder};
+use crate::history::{self, History, NewEntry};
 use crate::hotkey::{self, DictationAction};
-use crate::llm::{AnthropicCleaner, CleanupSettings, TextCleaner, clean_or_raw};
+use crate::llm::{AnthropicCleaner, CleanupOutcome, CleanupSettings, TextCleaner, clean_or_raw};
 use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
 use crate::settings::AppKeys;
 use crate::settings::keys::Provider;
@@ -130,12 +131,30 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
         .then(|| app.state::<AppKeys>().get(Provider::Anthropic))
         .flatten()
         .map(AnthropicCleaner::new);
+    let llm_started = std::time::Instant::now();
     let outcome = clean_or_raw(
         cleaner.as_ref().map(|c| c as &dyn TextCleaner),
         &transcript.text,
         "",
     );
+    let llm_latency_ms = cleaner
+        .is_some()
+        .then(|| llm_started.elapsed().as_millis() as i64);
     let text = outcome.text().to_string();
+    // Se guarda antes de pegar: si el pegado falla, el texto sigue en el historial.
+    app.state::<History>().record(&NewEntry {
+        created_at: history::now_ms(),
+        raw_text: transcript.text.clone(),
+        final_text: text.clone(),
+        mode: match outcome {
+            CleanupOutcome::Cleaned(_) => "clean".into(),
+            CleanupOutcome::Raw { .. } => "raw".into(),
+        },
+        // WAV PCM de 16 bits a 16 kHz: 32 bytes por milisegundo tras la cabecera.
+        duration_ms: (wav.len().saturating_sub(44) / 32) as i64,
+        stt_latency_ms: transcript.latency.as_millis() as i64,
+        llm_latency_ms,
+    });
     let _ = app.emit("transcription", &text);
     let clipboard = SystemClipboard::new().map_err(|e| e.to_string())?;
     let keys = EnigoKeys::new().map_err(|e| e.to_string())?;
