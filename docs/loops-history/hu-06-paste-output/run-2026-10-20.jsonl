@@ -2,3 +2,4 @@
 {"ts":"2026-10-20T18:42:28Z","run_id":"hu06-2026-10-20","item":"oracle-local-1","phase":"outcome","action":"oracle local iteración 1","verdict":"fail","evidence":"Rust OK (fmt, clippy, test 6/6, clipboard_roundtrip 1/1) pero prettier --check falla en README.md (tabla desalineada tras añadir libxdo-dev)","artifacts":[]}
 {"ts":"2026-10-20T18:42:41Z","run_id":"hu06-2026-10-20","item":"oracle-local-2","phase":"outcome","action":"oracle local iteración 2","verdict":"pass","evidence":"prettier/eslint OK; tsc OK; vitest OK; Rust sin cambios desde iteración 1 (pass)","artifacts":[]}
 {"ts":"2026-10-20T18:42:41Z","run_id":"hu06-2026-10-20","item":"pr","phase":"intent","action":"commit + push + PR que cierra #6"}
+{"ts":"2026-10-20T18:42:59Z","run_id":"hu06-2026-10-20","item":"pr","phase":"outcome","action":"commit + push + PR","verdict":"done","evidence":"commit 9b95b36","artifacts":["https://github.com/Alexander940/voice-recorder/pull/18"]}
