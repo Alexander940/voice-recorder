@@ -8,7 +8,7 @@ pub mod settings;
 pub mod stt;
 pub mod tray;
 
-use tauri::WindowEvent;
+use tauri::{Manager, WindowEvent};
 
 /// Versión de la app, expuesta al frontend.
 #[tauri::command]
@@ -29,12 +29,17 @@ pub fn run() {
         .plugin(hotkey::plugin())
         .manage(tray::TrayStore::default())
         .manage(dictation::DictationState::default())
+        .manage(settings::app_keys())
         .setup(|app| {
             // Solo bandeja / barra de menú: sin icono en el Dock.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             tray::build(app.handle())?;
             hotkey::init(app.handle());
+            // Primer arranque: sin key de Groq no se puede dictar.
+            if !app.state::<settings::AppKeys>().status().groq {
+                tray::show_window(app.handle(), tray::View::Onboarding);
+            }
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -51,7 +56,10 @@ pub fn run() {
             app_version,
             hotkey::set_hotkey,
             hotkey::set_hotkey_mode,
-            list_input_devices
+            list_input_devices,
+            settings::get_key_status,
+            settings::save_api_key,
+            settings::delete_api_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -25,6 +25,7 @@ pub struct TrayStore(pub Mutex<TrayState>);
 pub enum View {
     Settings,
     History,
+    Onboarding,
 }
 
 /// Qué hacer cuando el usuario cierra una ventana: ocultarla, nunca salir.
