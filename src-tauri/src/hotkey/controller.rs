@@ -9,9 +9,9 @@ pub const DEBOUNCE: Duration = Duration::from_millis(50);
 #[serde(rename_all = "lowercase")]
 pub enum HotkeyMode {
     /// Graba mientras el atajo está pulsado.
-    #[default]
     Hold,
-    /// Una pulsación empieza y otra termina.
+    /// Una pulsación empieza y otra termina (por defecto).
+    #[default]
     Toggle,
 }
 
@@ -128,6 +128,15 @@ mod tests {
 
     fn ms(base: Instant, n: u64) -> Instant {
         base + Duration::from_millis(n)
+    }
+
+    #[test]
+    fn default_mode_is_toggle() {
+        assert_eq!(HotkeyMode::default(), HotkeyMode::Toggle);
+        assert_eq!(
+            HotkeyController::new(HotkeyMode::default()).mode(),
+            HotkeyMode::Toggle
+        );
     }
 
     #[test]
