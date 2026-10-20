@@ -35,6 +35,7 @@ pub fn run() {
             // Solo bandeja / barra de menú: sin icono en el Dock.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            app.manage(history::History::open(app.handle()));
             tray::build(app.handle())?;
             hotkey::init(app.handle());
             // Primer arranque: sin key de Groq no se puede dictar.
@@ -61,7 +62,12 @@ pub fn run() {
             settings::get_key_status,
             settings::save_api_key,
             settings::delete_api_key,
-            llm::set_cleanup_enabled
+            llm::set_cleanup_enabled,
+            history::history_list,
+            history::history_delete,
+            history::history_get_settings,
+            history::history_set_settings,
+            history::history_deliver
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,0 +1,91 @@
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import History, { type HistoryEntry } from "./History";
+
+const invoke = vi.fn();
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (...args: unknown[]) => invoke(...args),
+}));
+
+const entry = (id: number, text: string, mode = "clean"): HistoryEntry => ({
+  id,
+  created_at: 1_760_000_000_000,
+  raw_text: `eh ${text}`,
+  final_text: text,
+  mode,
+  duration_ms: 2500,
+  stt_latency_ms: 900,
+  llm_latency_ms: 700,
+});
+
+let db: HistoryEntry[] = [];
+
+beforeEach(() => {
+  db = [entry(2, "Comprar pan"), entry(1, "Reunión con ventas", "raw")];
+  invoke.mockReset();
+  invoke.mockImplementation((cmd: string, args: Record<string, unknown>) => {
+    if (cmd === "history_list") {
+      const q = String(args.query).toLowerCase();
+      return Promise.resolve(db.filter((e) => e.final_text.toLowerCase().includes(q)));
+    }
+    if (cmd === "history_delete") {
+      db = db.filter((e) => e.id !== args.id);
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(null);
+  });
+});
+
+describe("History", () => {
+  it("lista los dictados con duración y tipo", async () => {
+    render(<History />);
+    const items = await screen.findAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent("Comprar pan");
+    expect(items[0]).toHaveTextContent("2.5 s");
+    expect(items[1]).toHaveTextContent("literal");
+  });
+
+  it("busca enviando la consulta al backend", async () => {
+    render(<History />);
+    await screen.findAllByRole("listitem");
+    fireEvent.change(screen.getByLabelText("Buscar en el historial"), {
+      target: { value: "ventas" },
+    });
+    await act(async () => {});
+    expect(invoke).toHaveBeenLastCalledWith("history_list", { query: "ventas" });
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("sin resultados muestra un mensaje", async () => {
+    db = [];
+    render(<History />);
+    expect(await screen.findByText("Todavía no hay dictados.")).toBeInTheDocument();
+  });
+
+  it("copiar y pegar de nuevo llaman a history_deliver", async () => {
+    render(<History />);
+    const [first] = await screen.findAllByRole("listitem");
+    await act(async () => fireEvent.click(within(first).getByText("Copiar")));
+    expect(invoke).toHaveBeenCalledWith("history_deliver", { id: 2, paste: false });
+    expect(screen.getByRole("status")).toHaveTextContent("Copiado");
+    await act(async () => fireEvent.click(within(first).getByText("Pegar de nuevo")));
+    expect(invoke).toHaveBeenCalledWith("history_deliver", { id: 2, paste: true });
+  });
+
+  it("borrar elimina la entrada y recarga", async () => {
+    render(<History />);
+    const [first] = await screen.findAllByRole("listitem");
+    await act(async () => fireEvent.click(within(first).getByText("Borrar")));
+    expect(invoke).toHaveBeenCalledWith("history_delete", { id: 2 });
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("muestra el error del backend", async () => {
+    render(<History />);
+    const [first] = await screen.findAllByRole("listitem");
+    invoke.mockRejectedValueOnce("No se pudo pegar");
+    await act(async () => fireEvent.click(within(first).getByText("Pegar de nuevo")));
+    expect(screen.getByRole("status")).toHaveTextContent("No se pudo pegar");
+  });
+});

@@ -8,7 +8,15 @@ let keyStatus = { groq: true, anthropic: true };
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn((cmd: string) =>
-    Promise.resolve(cmd === "get_key_status" ? keyStatus : cmd === "app_version" ? "0.1.0" : null),
+    Promise.resolve(
+      cmd === "get_key_status"
+        ? keyStatus
+        : cmd === "app_version"
+          ? "0.1.0"
+          : cmd === "history_list"
+            ? []
+            : null,
+    ),
   ),
 }));
 
