@@ -16,3 +16,13 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); llamadas reales a Groq/Anthropic solo con `LIVE_API_TESTS=1` y las keys en variables de entorno (nunca en el repo), con un tope de 1 USD por issue sumado en el log. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 2 iteraciones de validación local más la evaluación en vivo (2026-10-21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | fail | error de compilación: faltaba re-exportar `mode_shortcut` |
+| Validación local, iteración 2 | pass | cargo test 109/109, clippy, lint, tsc, vitest 25/25 y arranque |
+| Evaluación en vivo | pass | 6/6 modos; < $0,0005 |
+| Entrega | merged | PR #25 → `0844d41`, #9 cerrada |
