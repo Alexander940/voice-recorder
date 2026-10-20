@@ -8,6 +8,7 @@ pub mod output;
 pub mod settings;
 pub mod stt;
 pub mod tray;
+pub mod vocabulary;
 
 use tauri::{Manager, WindowEvent};
 
@@ -38,6 +39,7 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             app.manage(history::History::open(app.handle()));
             app.manage(modes::Modes::open(app.handle()));
+            app.manage(vocabulary::VocabularyStore::open(app.handle()));
             tray::build(app.handle())?;
             hotkey::init(app.handle());
             // Primer arranque: sin key de Groq no se puede dictar.
@@ -74,7 +76,9 @@ pub fn run() {
             modes::modes_set_active,
             modes::modes_save,
             modes::modes_duplicate,
-            modes::modes_delete
+            modes::modes_delete,
+            vocabulary::vocabulary_get,
+            vocabulary::vocabulary_save
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

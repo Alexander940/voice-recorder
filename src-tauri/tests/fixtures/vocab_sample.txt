@@ -1,0 +1,1 @@
+Mañana revisamos el despliegue de Kubernetes con el equipo de Anthropic y después llamamos al cliente de Bancolombia.
