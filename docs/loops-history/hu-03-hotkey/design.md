@@ -16,3 +16,13 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente. Checklist manual: el atajo funciona desde el navegador y desde VS Code.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); sin llamadas a APIs de pago. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 1 iteración de validación local (2026-10-20).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | pass | fmt, clippy y cargo test 32/32; lint, tsc y vitest; arranque del exe OK |
+| Entrega | merged | PR #19 → `35ebf01`, #3 cerrada |
+
+**Motivo de salida:** la validación pasó. Pendiente: la checklist manual (el atajo desde Chrome y VS Code).
