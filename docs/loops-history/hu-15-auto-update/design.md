@@ -1,5 +1,5 @@
 # Inner Loop: HU-15 — Actualizaciones automáticas
-> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local) · **ENMIENDA 2 (2026-10-21) pendiente de aprobación**
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local) · ENMIENDA 2 APPROVED 2026-10-21
 
 **Issue:** [#15](https://github.com/Alexander940/voice-recorder/issues/15)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)

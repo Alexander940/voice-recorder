@@ -1,5 +1,5 @@
 # Inner Loop: HU-14 — Instaladores firmados
-> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local) · **ENMIENDA 2 (2026-10-21) pendiente de aprobación**
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local) · ENMIENDA 2 APPROVED 2026-10-21
 
 **Issue:** [#14](https://github.com/Alexander940/voice-recorder/issues/14)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)
