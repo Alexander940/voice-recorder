@@ -17,3 +17,14 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente. Checklist manual: grabar con el micrófono real y oír el WAV de depuración.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); sin llamadas a APIs de pago. Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Outcome
+**Resultado:** ✅ éxito, en 2 iteraciones de validación local (2026-10-20).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Validación local, iteración 1 | fail | clippy: 4 `collapsible_if` |
+| Validación local, iteración 2 | pass | fmt, clippy, cargo test 47/47 (fixtures, límite, nivel), micrófono real 1/1, lint, tsc, vitest 5/5 y arranque |
+| Entrega | merged | PR #20 → `963945d`, #4 cerrada |
+
+**Motivo de salida:** la validación pasó. Pendiente: la checklist manual (el overlay visible al dictar y la escucha de `last-recording.wav`).
