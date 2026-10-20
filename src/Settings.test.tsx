@@ -17,6 +17,7 @@ const DEFAULTS: AppSettings = {
   output: { copy_only: false },
   privacy: { enabled: true, retention_days: 30 },
   feedback: { sounds: true },
+  updates: { enabled: true },
 };
 
 beforeEach(() => {
@@ -35,6 +36,8 @@ beforeEach(() => {
         return Promise.resolve({ groq: false, anthropic: false });
       case "modes_list":
         return Promise.resolve({ modes: [], active: "clean" });
+      case "update_status":
+        return Promise.resolve({ configured: false, enabled: true, available: null });
       case "vocabulary_get":
         return Promise.resolve({ terms: [], replacements: [] });
       default:
@@ -65,6 +68,7 @@ describe("Settings", () => {
       "IA",
       "Cuentas",
       "Privacidad",
+      "Actualizaciones",
     ]) {
       expect(screen.getByRole("heading", { name })).toBeInTheDocument();
     }
@@ -143,5 +147,12 @@ describe("Settings", () => {
     expect(screen.getByLabelText("Conservar (días, 0 = siempre)")).toBeDisabled();
     await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
     expect(lastUpdate().privacy).toEqual({ enabled: false, retention_days: 30 });
+  });
+
+  it("Actualizaciones: el interruptor se guarda con los ajustes", async () => {
+    await renderSettings();
+    fireEvent.click(screen.getByLabelText("Buscar actualizaciones al iniciar y una vez al día"));
+    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
+    expect(lastUpdate().updates.enabled).toBe(false);
   });
 });

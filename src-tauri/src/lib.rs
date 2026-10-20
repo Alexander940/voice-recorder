@@ -11,6 +11,7 @@ pub mod settings;
 pub mod sounds;
 pub mod stt;
 pub mod tray;
+pub mod updater;
 pub mod vocabulary;
 
 use tauri::{Manager, WindowEvent};
@@ -33,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(hotkey::plugin())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
@@ -40,6 +42,7 @@ pub fn run() {
         .manage(tray::TrayStore::default())
         .manage(dictation::DictationState::default())
         .manage(logging::Redactions::default())
+        .manage(updater::UpdateState::default())
         .manage(settings::app_keys())
         .manage(llm::CleanupSettings::default())
         .setup(|app| {
@@ -60,6 +63,7 @@ pub fn run() {
             hotkey::init(app.handle());
             // Después del atajo y el historial: los ajustes los configuran.
             settings::init(app.handle());
+            updater::start(app.handle());
             // Primer arranque: sin key de Groq no se puede dictar.
             if !app.state::<settings::AppKeys>().status().groq {
                 tray::show_window(app.handle(), tray::View::Onboarding);
@@ -98,7 +102,9 @@ pub fn run() {
             settings::settings_get,
             settings::settings_update,
             dictation::dictation_retry_available,
-            dictation::dictation_retry
+            dictation::dictation_retry,
+            updater::update_status,
+            updater::update_install
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
