@@ -1,5 +1,5 @@
 # Inner Loop: HU-15 — Actualizaciones automáticas
-> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local)
+> **Status:** APPROVED 2026-10-20 · ENMIENDA APPROVED 2026-10-20 (validación solo local) · **ENMIENDA 2 (2026-10-21) pendiente de aprobación**
 
 **Issue:** [#15](https://github.com/Alexander940/voice-recorder/issues/15)
 **Classification:** inner loop (tarea cerrada con validación ejecutable)
@@ -16,3 +16,9 @@
 **Human-in-the-loop:** (1) el usuario aprueba este diseño; (2) merge automático con squash cuando la validación local pasa (autorizado por el usuario el 2026-10-20); (3) después del merge, el usuario revisa la checklist manual que hay en la descripción de la PR. Si algo falla, se abre una issue de bug y la issue original **no** se reabre automáticamente.
 **Irreversible actions:** push de la rama y PR (bajo riesgo); merge a `main` (autorizado si la validación local pasa); generar o guardar la clave de firma del updater (lo hace el usuario). Nunca: crear tags o releases, tocar secretos ni borrar ramas o datos del usuario.
 **Kill switch:** interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba al inicio de cada iteración. Cada efecto secundario (commit, push, comentario, merge) es atómico y se puede verificar tras una interrupción.
+
+## Enmienda 2 (2026-10-21): sin release real
+Como HU-14 no publica releases, este loop **no** valida contra GitHub Releases:
+- El endpoint del updater apunta a \`https://github.com/Alexander940/voice-recorder/releases/latest/download/latest.json\`, pero la validación usa **solo un manifiesto local** (mockito): versión mayor → ofrece la actualización; firma inválida → la rechaza; desactivado → no comprueba; como mucho una comprobación al día (reloj simulado).
+- La verificación de firma se prueba con un **par de claves de prueba** generado en un directorio temporal durante el test. La **clave pública real** para \`tauri.conf.json\` la genera el usuario con \`npx tauri signer generate\` (el agente nunca ve la privada); mientras no exista, el updater queda desactivado en la configuración y la app funciona igual.
+- No se valida (riesgo aceptado): una actualización real de extremo a extremo entre dos releases publicadas.
