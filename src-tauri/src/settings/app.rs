@@ -100,6 +100,19 @@ impl Default for FeedbackSettings {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
+pub struct UpdateSettings {
+    /// Comprobar actualizaciones al iniciar y una vez al día.
+    pub enabled: bool,
+}
+
+impl Default for UpdateSettings {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
 pub struct AppSettings {
     pub version: u32,
     pub general: GeneralSettings,
@@ -110,6 +123,7 @@ pub struct AppSettings {
     pub output: OutputSettings,
     pub privacy: HistorySettings,
     pub feedback: FeedbackSettings,
+    pub updates: UpdateSettings,
 }
 
 impl Default for AppSettings {
@@ -124,6 +138,7 @@ impl Default for AppSettings {
             output: OutputSettings::default(),
             privacy: HistorySettings::default(),
             feedback: FeedbackSettings::default(),
+            updates: UpdateSettings::default(),
         }
     }
 }
@@ -256,6 +271,7 @@ mod tests {
         assert!(s.ai.cleanup);
         assert_eq!(s.audio.max_duration_secs, 300);
         assert!(s.feedback.sounds);
+        assert!(s.updates.enabled);
         assert!(s.validate().is_ok());
     }
 

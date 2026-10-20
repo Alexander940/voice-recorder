@@ -162,6 +162,7 @@ mod tests {
         "AppSettings",
         "Result<AppSettings, String>",
         "bool",
+        "UpdateStatus",
     ];
 
     fn rust_sources(dir: &std::path::Path, out: &mut Vec<(String, String)>) {

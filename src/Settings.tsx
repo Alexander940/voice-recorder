@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import Modes from "./Modes";
+import Updates from "./Updates";
 import Vocabulary from "./Vocabulary";
 import { KeyStep, type KeyStatus, type Provider } from "./Onboarding";
 
@@ -14,6 +15,7 @@ export interface AppSettings {
   output: { copy_only: boolean };
   privacy: { enabled: boolean; retention_days: number };
   feedback: { sounds: boolean };
+  updates: { enabled: boolean };
 }
 
 const MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"];
@@ -233,6 +235,11 @@ export default function Settings() {
           />
         </label>
       </section>
+
+      <Updates
+        enabled={settings.updates.enabled}
+        onToggle={(enabled) => set("updates", { enabled })}
+      />
 
       <button onClick={save}>Guardar ajustes</button>
       {status && <p role={status.ok ? "status" : "alert"}>{status.text}</p>}

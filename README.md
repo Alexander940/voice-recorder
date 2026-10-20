@@ -40,3 +40,14 @@ src-tauri/src/
   settings/          Configuración y API keys (keyring)
   history/           Historial en SQLite
 ```
+
+## Publicar una versión
+
+1. **Claves del updater** (una sola vez): `npx tauri signer generate -w ~/.tauri/voice-recorder.key`
+   - Copia la **clave pública** en `src-tauri/tauri.conf.json` → `plugins.updater.pubkey` y pon `bundle.createUpdaterArtifacts: true`
+   - Guarda la **clave privada** y su contraseña como secretos `TAURI_SIGNING_PRIVATE_KEY` y `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` en GitHub. No la subas al repo
+2. (Opcional) Secretos de firma de código: `APPLE_*` para macOS y `WINDOWS_CERTIFICATE` / `WINDOWS_CERTIFICATE_PASSWORD` para Windows
+3. Ensayo sin publicar: _Actions → Release → Run workflow_
+4. Release: sube la versión en `tauri.conf.json`, luego `git tag vX.Y.Z && git push origin vX.Y.Z` → revisa el borrador en GitHub Releases → publícalo
+
+Sin clave pública, la app no busca actualizaciones y funciona igual.
