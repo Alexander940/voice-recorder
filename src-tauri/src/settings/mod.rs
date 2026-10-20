@@ -53,6 +53,8 @@ mod tests {
         "HistorySettings",
         "ModesState",
         "Result<ModesState, String>",
+        "Vocabulary",
+        "Result<Vocabulary, String>",
     ];
 
     fn rust_sources(dir: &std::path::Path, out: &mut Vec<(String, String)>) {

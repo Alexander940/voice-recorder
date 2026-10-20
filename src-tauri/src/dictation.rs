@@ -14,6 +14,7 @@ use crate::settings::AppKeys;
 use crate::settings::keys::Provider;
 use crate::stt::{GroqTranscriber, TranscribeOptions, Transcriber};
 use crate::tray::{self, TrayEvent};
+use crate::vocabulary::VocabularyStore;
 
 pub const OVERLAY_WINDOW: &str = "overlay";
 
@@ -122,8 +123,15 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
         .state::<AppKeys>()
         .get(Provider::Groq)
         .ok_or_else(|| "Falta la API key de Groq: configúrala en Ajustes".to_string())?;
+    let vocabulary = app.state::<VocabularyStore>().get();
     let transcript = GroqTranscriber::new(key)
-        .transcribe(wav, &TranscribeOptions::default())
+        .transcribe(
+            wav,
+            &TranscribeOptions {
+                prompt: vocabulary.whisper_prompt(),
+                ..Default::default()
+            },
+        )
         .map_err(|e| e.to_string())?;
     if transcript.text.is_empty() {
         return Ok(());
@@ -134,16 +142,17 @@ fn transcribe_and_deliver<R: Runtime>(app: &AppHandle<R>, wav: &[u8]) -> Result<
         .then(|| app.state::<AppKeys>().get(Provider::Anthropic))
         .flatten()
         .map(AnthropicCleaner::new);
+    let instructions = [mode.instructions(), vocabulary.llm_instructions()].join("\n");
     let llm_started = std::time::Instant::now();
     let outcome = clean_or_raw(
         cleaner.as_ref().map(|c| c as &dyn TextCleaner),
         &transcript.text,
-        &mode.instructions(),
+        instructions.trim(),
     );
     let llm_latency_ms = cleaner
         .is_some()
         .then(|| llm_started.elapsed().as_millis() as i64);
-    let text = outcome.text().to_string();
+    let text = vocabulary.apply_replacements(outcome.text());
     // Se guarda antes de pegar: si el pegado falla, el texto sigue en el historial.
     app.state::<History>().record(&NewEntry {
         created_at: history::now_ms(),
