@@ -7,7 +7,7 @@ pub const ESCAPE: &str = "Escape";
 /// Atajo secundario para pasar al siguiente modo.
 pub const fn mode_shortcut() -> &'static str {
     if cfg!(target_os = "macos") {
-        "Cmd+Option+M"
+        "Ctrl+Option+M"
     } else {
         "Ctrl+Alt+M"
     }
@@ -16,7 +16,7 @@ pub const fn mode_shortcut() -> &'static str {
 /// Atajo por defecto de la plataforma.
 pub const fn default_shortcut() -> &'static str {
     if cfg!(target_os = "macos") {
-        "Cmd+Option+Space"
+        "Option+Space"
     } else {
         "Ctrl+Alt+Space"
     }
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn default_shortcut_matches_platform() {
         #[cfg(target_os = "macos")]
-        assert_eq!(default_shortcut(), "Cmd+Option+Space");
+        assert_eq!(default_shortcut(), "Option+Space");
         #[cfg(not(target_os = "macos"))]
         assert_eq!(default_shortcut(), "Ctrl+Alt+Space");
     }
