@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.2
+
+### Correcciones
+
+- «Instalar y reiniciar» no hacía nada en macOS: la confirmación usaba `window.confirm`, que el WebView de macOS no muestra (y devuelve «no»). Ahora la confirmación está dentro de la propia ventana y se muestra el progreso de la descarga. **Quien tenga la v0.1.0 o la v0.1.1 en macOS tiene que instalar esta versión a mano una vez**; las siguientes ya se podrán instalar desde la app.
+- Los pasos de la instalación de actualizaciones y sus errores quedan en el log.
+
 ## v0.1.1
 
 ### Correcciones (macOS)

@@ -1532,3 +1532,16 @@ fieldset.setting legend {
 .btn-primary.pad-18 {
   padding: 0 18px;
 }
+
+.update-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--accent-line);
+  font-size: 14px;
+  color: var(--ink);
+}
