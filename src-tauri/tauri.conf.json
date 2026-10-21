@@ -74,7 +74,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE3MTg3MDJFRUEyMDc1NTYKUldSV2RTRHFMbkFZRjRieG9lZXNqSS9CZUZ3My92N0pRaWdhNTJzdHFMK3NDU0lyUUtSWDU1cFUK",
       "endpoints": [
         "https://github.com/Alexander940/voice-recorder/releases/latest/download/latest.json"
       ],

@@ -43,11 +43,13 @@ src-tauri/src/
 
 ## Publicar una versión
 
-1. **Claves del updater** (una sola vez): `npx tauri signer generate -w ~/.tauri/voice-recorder.key`
-   - Copia la **clave pública** en `src-tauri/tauri.conf.json` → `plugins.updater.pubkey` y pon `bundle.createUpdaterArtifacts: true`
-   - Guarda la **clave privada** y su contraseña como secretos `TAURI_SIGNING_PRIVATE_KEY` y `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` en GitHub. No la subas al repo
-2. (Opcional) Secretos de firma de código: `APPLE_*` para macOS y `WINDOWS_CERTIFICATE` / `WINDOWS_CERTIFICATE_PASSWORD` para Windows
-3. Ensayo sin publicar: _Actions → Release → Run workflow_
-4. Release: sube la versión en `tauri.conf.json`, luego `git tag vX.Y.Z && git push origin vX.Y.Z` → revisa el borrador en GitHub Releases → publícalo
+1. **Claves del updater** (ya hechas para v0.1.0; solo hay que repetirlas si se pierden):
+   - `npx tauri signer generate -w ~/.tauri/voice-recorder.key` (en PowerShell: `npx.cmd`).
+   - La clave pública está en `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`.
+   - La clave privada y su contraseña están en los secretos `TAURI_SIGNING_PRIVATE_KEY` y `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` de GitHub. Nunca van al repo. Guarda una copia: sin ella, las instalaciones existentes no pueden aceptar nuevas versiones.
+   - Los artefactos firmados del updater solo se generan en el workflow (`src-tauri/tauri.release.conf.json`). `npm run tauri build` en local no necesita la clave.
+2. (Opcional) Secretos de firma de código: `APPLE_*` para macOS y `WINDOWS_CERTIFICATE` / `WINDOWS_CERTIFICATE_PASSWORD` para Windows.
+3. Ensayo sin publicar: _Actions → Release → Run workflow_.
+4. Release: sube la versión en `tauri.conf.json` y `package.json`, añade la entrada en `CHANGELOG.md`, luego `git tag vX.Y.Z && git push origin vX.Y.Z` → revisa el borrador en GitHub Releases (instaladores y `latest.json`) → publícalo.
 
-Sin clave pública, la app no busca actualizaciones y funciona igual.
+El updater busca `releases/latest/download/latest.json`: solo las releases **publicadas** (no los borradores) llegan a los usuarios.
