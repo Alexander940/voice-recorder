@@ -22,6 +22,46 @@ fn app_version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+/// Destinos externos que la interfaz puede abrir. Son fijos: el frontend nunca
+/// pasa una URL arbitraria.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum LinkTarget {
+    Groq,
+    Anthropic,
+    Accessibility,
+}
+
+fn link_url(target: LinkTarget) -> &'static str {
+    match target {
+        LinkTarget::Groq => "https://console.groq.com/keys",
+        LinkTarget::Anthropic => "https://console.anthropic.com/settings/keys",
+        LinkTarget::Accessibility => {
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+        }
+    }
+}
+
+/// Abre un enlace en el navegador o en Ajustes del Sistema.
+#[tauri::command]
+fn open_link(target: LinkTarget) -> Result<(), String> {
+    let url = link_url(target);
+    #[cfg(target_os = "macos")]
+    let spawned = std::process::Command::new("open").arg(url).spawn();
+    #[cfg(target_os = "windows")]
+    let spawned = {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let spawned = std::process::Command::new("xdg-open").arg(url).spawn();
+    spawned.map(|_| ()).map_err(|e| e.to_string())
+}
+
 /// Micrófonos disponibles (para los ajustes, HU-12).
 #[tauri::command]
 fn list_input_devices() -> Vec<String> {
@@ -103,8 +143,14 @@ pub fn run() {
             settings::settings_update,
             dictation::dictation_retry_available,
             dictation::dictation_retry,
+            dictation::dictation_cancel,
+            dictation::overlay_dismiss,
+            dictation::overlay_fit,
+            settings::get_key_hints,
             updater::update_status,
-            updater::update_install
+            updater::update_check_now,
+            updater::update_install,
+            open_link
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -113,6 +159,15 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn links_are_fixed_and_safe() {
+        for t in [LinkTarget::Groq, LinkTarget::Anthropic] {
+            assert!(link_url(t).starts_with("https://console."));
+        }
+        assert!(link_url(LinkTarget::Accessibility).starts_with("x-apple.systempreferences:"));
+        assert!(serde_json::from_str::<LinkTarget>("\"https://evil.example\"").is_err());
+    }
 
     #[test]
     fn app_version_matches_cargo_manifest() {

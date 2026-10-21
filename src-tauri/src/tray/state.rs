@@ -1,7 +1,8 @@
 //! Máquina de estados del icono de la bandeja.
 
 /// Estado visible de la app en la bandeja.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TrayState {
     #[default]
     Idle,
@@ -50,27 +51,60 @@ impl TrayState {
         }
     }
 
-    /// Color RGB del icono para el estado.
+    /// Primera línea del menú de la bandeja.
+    pub fn status_text(self) -> &'static str {
+        match self {
+            TrayState::Idle => "Listo para dictar",
+            TrayState::Recording => "Grabando…",
+            TrayState::Processing => "Procesando…",
+        }
+    }
+
+    /// Color RGB del icono para el estado (docs/design/tray-spec.json).
     pub fn color(self) -> [u8; 3] {
         match self {
-            TrayState::Idle => [0x8a, 0x8f, 0x98],
-            TrayState::Recording => [0xe5, 0x3e, 0x3e],
-            TrayState::Processing => [0xf0, 0xa2, 0x02],
+            TrayState::Idle => [0x6b, 0x71, 0x7c],
+            TrayState::Recording => [0xd9, 0x2d, 0x2d],
+            TrayState::Processing => [0x4f, 0x46, 0xe5],
         }
     }
 }
 
-/// Icono RGBA cuadrado: un círculo del color del estado sobre fondo transparente.
+/// Distancia de un punto a un segmento.
+fn segment_distance(p: (f32, f32), a: (f32, f32), b: (f32, f32)) -> f32 {
+    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+    let len2 = dx * dx + dy * dy;
+    let t = if len2 == 0.0 {
+        0.0
+    } else {
+        (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / len2).clamp(0.0, 1.0)
+    };
+    ((p.0 - a.0 - t * dx).powi(2) + (p.1 - a.1 - t * dy).powi(2)).sqrt()
+}
+
+/// Icono RGBA cuadrado: un micrófono del color del estado sobre fondo transparente.
+/// Se dibuja en una rejilla de 24 unidades (como los iconos de la interfaz).
 pub fn icon_rgba(state: TrayState, size: u32) -> Vec<u8> {
     let [r, g, b] = state.color();
-    let c = (size as f32 - 1.0) / 2.0;
-    let radius = size as f32 / 2.0 - 1.0;
+    let unit = size as f32 / 24.0;
+    let stroke = 1.1;
     let mut buf = Vec::with_capacity((size * size * 4) as usize);
     for y in 0..size {
         for x in 0..size {
-            let d = ((x as f32 - c).powi(2) + (y as f32 - c).powi(2)).sqrt();
+            let p = ((x as f32 + 0.5) / unit, (y as f32 + 0.5) / unit);
+            // Cápsula rellena (x 9–15, y 3–14) y, en Grabando, también su interior.
+            let capsule = segment_distance(p, (12.0, 6.0), (12.0, 11.0)) - 3.0;
+            // Arco inferior de radio 7 centrado en (12, 11).
+            let d = ((p.0 - 12.0).powi(2) + (p.1 - 11.0).powi(2)).sqrt();
+            let arc = if p.1 >= 11.0 {
+                (d - 7.0).abs() - stroke
+            } else {
+                f32::MAX
+            };
+            let stem = segment_distance(p, (12.0, 18.0), (12.0, 21.0)) - stroke;
+            let shape = capsule.min(arc).min(stem);
             // Borde suavizado de 1 px.
-            let alpha = (radius + 0.5 - d).clamp(0.0, 1.0);
+            let alpha = (0.5 - shape * unit).clamp(0.0, 1.0);
             buf.extend_from_slice(&[r, g, b, (alpha * 255.0) as u8]);
         }
     }
@@ -142,7 +176,34 @@ mod tests {
         let px = icon_rgba(Recording, size);
         assert_eq!(px.len(), (size * size * 4) as usize);
         assert_eq!(px[3], 0, "la esquina debe ser transparente");
-        let center = (((size / 2) * size + size / 2) * 4) as usize;
-        assert_eq!(&px[center..center + 4], &[0xe5, 0x3e, 0x3e, 255]);
+        // El centro de la cápsula del micrófono es opaco y del color del estado.
+        let at = |x: u32, y: u32| ((y * size + x) * 4) as usize;
+        let c = at(16, 11);
+        assert_eq!(&px[c..c + 4], &[0xd9, 0x2d, 0x2d, 255]);
+        // Entre la cápsula y el arco hay hueco: no es un círculo relleno.
+        let gap = at(16, 19);
+        assert_eq!(px[gap + 3], 0);
+    }
+
+    /// Los colores salen del diseño aprobado (docs/design/tray-spec.json).
+    #[test]
+    fn colors_and_status_texts_match_the_design_spec() {
+        let spec: serde_json::Value =
+            serde_json::from_str(include_str!("../../../docs/design/tray-spec.json")).unwrap();
+        for (state, key) in [
+            (Idle, "idle"),
+            (Recording, "recording"),
+            (Processing, "processing"),
+        ] {
+            let [r, g, b] = state.color();
+            assert_eq!(
+                format!("#{r:02X}{g:02X}{b:02X}"),
+                spec["icon_colors"][key].as_str().unwrap()
+            );
+            assert_eq!(
+                state.status_text(),
+                spec["status_text"][key].as_str().unwrap()
+            );
+        }
     }
 }

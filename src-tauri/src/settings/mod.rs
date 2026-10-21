@@ -7,7 +7,9 @@ pub use app::{AppSettings, SettingsEffects, apply_changes};
 
 use std::sync::Mutex;
 
-use keys::{HttpValidator, KEYRING_SERVICE, KeyManager, KeyStatus, KeyringStore, Provider};
+use keys::{
+    HttpValidator, KEYRING_SERVICE, KeyHints, KeyManager, KeyStatus, KeyringStore, Provider,
+};
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_store::StoreExt;
@@ -105,6 +107,9 @@ pub fn settings_update(app: AppHandle, settings: AppSettings) -> Result<AppSetti
     apply_changes(&mut TauriEffects(&app), Some(&current), &settings)?;
     persist(&app, &settings)?;
     *current = settings.clone();
+    drop(current);
+    // El menú de la bandeja muestra el atajo.
+    let _ = crate::tray::rebuild_menu(&app);
     let _ = app.emit("settings-changed", &settings);
     Ok(settings)
 }
@@ -118,6 +123,12 @@ pub fn app_keys() -> AppKeys {
 #[tauri::command]
 pub fn get_key_status(keys: State<'_, AppKeys>) -> KeyStatus {
     keys.status()
+}
+
+/// Prefijo y últimos 4 caracteres de cada key guardada (nunca la key entera).
+#[tauri::command]
+pub fn get_key_hints(keys: State<'_, AppKeys>) -> KeyHints {
+    keys.hints()
 }
 
 /// La validación hace una petición de red bloqueante: va a un hilo de trabajo.
@@ -163,6 +174,8 @@ mod tests {
         "Result<AppSettings, String>",
         "bool",
         "UpdateStatus",
+        "Result<UpdateStatus, String>",
+        "KeyHints",
     ];
 
     fn rust_sources(dir: &std::path::Path, out: &mut Vec<(String, String)>) {

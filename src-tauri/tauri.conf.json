@@ -14,21 +14,24 @@
       {
         "label": "settings",
         "title": "Voice Recorder",
-        "width": 800,
-        "height": 600,
+        "width": 960,
+        "height": 680,
+        "minWidth": 720,
+        "minHeight": 520,
         "visible": false,
         "center": true
       },
       {
         "label": "overlay",
         "url": "index.html#overlay",
-        "width": 300,
-        "height": 64,
+        "width": 360,
+        "height": 80,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "focus": false,
+        "focusable": false,
         "resizable": false,
         "shadow": false,
         "visible": false

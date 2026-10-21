@@ -116,6 +116,30 @@ pub fn force_stop<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+/// Empieza o termina un dictado desde la interfaz (menú de la bandeja).
+pub fn toggle_from_ui<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<HotkeyState<R>>();
+    let action = state
+        .controller
+        .lock()
+        .expect("hotkey poisoned")
+        .toggle_external(Instant::now());
+    dispatch(app, &state, action);
+}
+
+/// Cancela la grabación en curso desde la interfaz (botón del overlay).
+pub fn cancel_from_ui<R: Runtime>(app: &AppHandle<R>) {
+    let state = app.state::<HotkeyState<R>>();
+    let action = state
+        .controller
+        .lock()
+        .expect("hotkey poisoned")
+        .cancel_external();
+    if let Some(action) = action {
+        dispatch(app, &state, action);
+    }
+}
+
 /// Vuelve a reposo sin acción y libera Esc (el micrófono no arrancó).
 pub fn reset<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<HotkeyState<R>>();
