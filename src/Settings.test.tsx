@@ -85,6 +85,15 @@ describe("Settings", () => {
     expect(screen.getByText("Hay cambios sin guardar")).toBeInTheDocument();
   });
 
+  it("permite hasta 3 h y avisa del límite de Groq a partir de 2 h", async () => {
+    render(<Settings />);
+    const minutes = await screen.findByLabelText(/Duración máxima/);
+    expect(minutes).toHaveAttribute("max", "180");
+    expect(screen.queryByText(/agotar tu límite/)).toBeNull();
+    fireEvent.change(minutes, { target: { value: "150" } });
+    expect(screen.getByText(/agotar tu límite de audio por hora de Groq/)).toBeInTheDocument();
+  });
+
   it("la retención se desactiva sin historial", async () => {
     render(<Settings />);
     fireEvent.click(await screen.findByRole("switch", { name: /Guardar historial/ }));

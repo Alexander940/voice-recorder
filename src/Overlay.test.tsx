@@ -11,6 +11,7 @@ describe("helpers", () => {
     expect(formatElapsed(0)).toBe("0:00");
     expect(formatElapsed(7_400)).toBe("0:07");
     expect(formatElapsed(65_000)).toBe("1:05");
+    expect(formatElapsed(4_350_000)).toBe("1:12:30");
   });
 
   it("dibuja los niveles recientes y puntos donde aún no hay", () => {
@@ -57,6 +58,17 @@ describe("Overlay", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancelar grabación" }));
     expect(called("dictation_cancel")).toHaveLength(1);
     expect(called("overlay_fit").length).toBeGreaterThan(0);
+  });
+
+  it("en un dictado largo muestra los trozos ya transcritos", () => {
+    render(
+      <Overlay initial={{ kind: "recording", mode: "Limpio", shortcut: "X", toggle: true }} />,
+    );
+    expect(screen.queryByTestId("chunks")).toBeNull();
+    act(() => fire("dictation-progress", 1));
+    expect(screen.getByTestId("chunks")).toHaveTextContent("1 trozo transcrito");
+    act(() => fire("dictation-progress", 7));
+    expect(screen.getByTestId("chunks")).toHaveTextContent("7 trozos transcritos");
   });
 
   it("en modo mantener la ayuda dice soltar", () => {

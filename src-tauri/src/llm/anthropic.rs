@@ -12,8 +12,14 @@ use crate::settings::keys::{ANTHROPIC_API_BASE, ANTHROPIC_VERSION};
 
 /// Modelo rápido y barato: la latencia importa más que la inteligencia.
 pub const CLEANUP_MODEL: &str = "claude-haiku-5-5";
-/// Si Claude tarda más, se pega el texto de Whisper.
-pub const CLEANUP_TIMEOUT: Duration = Duration::from_secs(3);
+/// Tiempo máximo de la limpieza según el largo del texto: no hay un tope fijo,
+/// Claude tiene el tiempo que necesite para generarlo (unos 25 tokens/s como
+/// mínimo, muy por debajo de lo que tarda Haiku) más un margen para la red. Solo
+/// evita quedarse colgado para siempre si la conexión se cae.
+pub fn cleanup_timeout(raw: &str) -> Duration {
+    let approx_tokens = (raw.chars().count() / 3) as u64;
+    Duration::from_secs(20 + approx_tokens / 25)
+}
 
 /// Prompt de sistema estable (va primero para aprovechar la caché de prompts
 /// cuando el prefijo crezca con los modos y el vocabulario).
@@ -35,6 +41,8 @@ pub struct AnthropicCleaner {
     base_url: String,
     api_key: String,
     client: Client,
+    /// Solo en tests: un tiempo máximo fijo en lugar de `cleanup_timeout`.
+    fixed_timeout: Option<Duration>,
 }
 
 impl fmt::Debug for AnthropicCleaner {
@@ -64,7 +72,9 @@ struct ContentBlock {
 
 impl AnthropicCleaner {
     pub fn new(api_key: impl Into<String>) -> Self {
-        Self::with_base_url(ANTHROPIC_API_BASE, api_key, CLEANUP_TIMEOUT)
+        let mut cleaner = Self::with_base_url(ANTHROPIC_API_BASE, api_key, Duration::ZERO);
+        cleaner.fixed_timeout = None;
+        cleaner
     }
 
     pub fn with_base_url(
@@ -75,10 +85,8 @@ impl AnthropicCleaner {
         Self {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             api_key: api_key.into(),
-            client: Client::builder()
-                .timeout(timeout)
-                .build()
-                .expect("cliente HTTP"),
+            client: Client::builder().build().expect("cliente HTTP"),
+            fixed_timeout: Some(timeout),
         }
     }
 
@@ -116,6 +124,7 @@ impl TextCleaner for AnthropicCleaner {
             .post(format!("{}/messages", self.base_url))
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", ANTHROPIC_VERSION)
+            .timeout(self.fixed_timeout.unwrap_or_else(|| cleanup_timeout(raw)))
             .json(&Self::request_body(raw, instructions))
             .send()
             .map_err(|e| {
@@ -226,6 +235,15 @@ mod tests {
         let system = body["system"].as_str().unwrap();
         assert!(system.starts_with(DEFAULT_SYSTEM_PROMPT));
         assert!(system.ends_with("Formato de email."));
+    }
+
+    #[test]
+    fn cleanup_time_grows_with_the_text_instead_of_a_fixed_limit() {
+        // Un dictado corto tiene margen de sobra; 10 min de dictado (~9 000
+        // caracteres) tienen minutos, no los 3 s de antes.
+        assert!(cleanup_timeout("hola qué tal") >= Duration::from_secs(20));
+        assert!(cleanup_timeout(&"a".repeat(9_000)) >= Duration::from_secs(120));
+        assert!(AnthropicCleaner::new("k").fixed_timeout.is_none());
     }
 
     #[test]

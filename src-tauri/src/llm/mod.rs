@@ -2,7 +2,7 @@
 
 mod anthropic;
 
-pub use anthropic::{AnthropicCleaner, CLEANUP_MODEL, CLEANUP_TIMEOUT, DEFAULT_SYSTEM_PROMPT};
+pub use anthropic::{AnthropicCleaner, CLEANUP_MODEL, DEFAULT_SYSTEM_PROMPT, cleanup_timeout};
 
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};

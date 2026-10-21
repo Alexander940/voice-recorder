@@ -5,6 +5,7 @@ pub mod history;
 pub mod hotkey;
 pub mod llm;
 pub mod logging;
+pub mod longform;
 pub mod modes;
 pub mod output;
 pub mod settings;

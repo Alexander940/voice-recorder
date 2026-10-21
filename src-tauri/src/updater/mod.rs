@@ -144,6 +144,24 @@ pub async fn update_install(app: AppHandle) -> Result<(), String> {
     if pubkey.trim().is_empty() {
         return Err(UpdateError::NotConfigured.to_string());
     }
+    let result = install(&app, &pubkey).await;
+    if let Err(e) = &result {
+        tracing::warn!(error = %e, "no se pudo instalar la actualización");
+    }
+    result?;
+    tracing::info!("actualización instalada; reiniciando");
+    app.restart();
+}
+
+/// Progreso de la descarga (evento `update-progress`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct UpdateProgress {
+    pub downloaded: u64,
+    pub total: Option<u64>,
+}
+
+async fn install(app: &AppHandle, pubkey: &str) -> Result<(), String> {
+    tracing::info!("buscando la actualización para instalarla");
     let update = app
         .updater()
         .map_err(|e| e.to_string())?
@@ -151,12 +169,21 @@ pub async fn update_install(app: AppHandle) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "No hay ninguna actualización disponible".to_string())?;
+    tracing::info!(version = %update.version, "descargando la actualización");
+    let progress_app = app.clone();
+    let mut downloaded = 0u64;
     // El plugin ya verifica la firma; se comprueba de nuevo con nuestra lógica probada.
     let bytes = update
-        .download(|_, _| {}, || {})
+        .download(
+            move |chunk, total| {
+                downloaded += chunk as u64;
+                let _ = progress_app.emit("update-progress", UpdateProgress { downloaded, total });
+            },
+            || {},
+        )
         .await
         .map_err(|e| e.to_string())?;
-    verify_artifact(&bytes, &update.signature, &pubkey).map_err(|e| e.to_string())?;
-    update.install(bytes).map_err(|e| e.to_string())?;
-    app.restart();
+    verify_artifact(&bytes, &update.signature, pubkey).map_err(|e| e.to_string())?;
+    tracing::info!(bytes = bytes.len(), "firma verificada; instalando");
+    update.install(bytes).map_err(|e| e.to_string())
 }

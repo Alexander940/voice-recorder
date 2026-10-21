@@ -34,11 +34,26 @@ export function noteLines(notes: string | null): string[] {
     .filter(Boolean);
 }
 
+export interface UpdateProgress {
+  downloaded: number;
+  total: number | null;
+}
+
+/** "Descargando… 45 %" o, sin tamaño conocido, los MB descargados. */
+export function progressText(p: UpdateProgress | null): string {
+  if (!p) return "Descargando…";
+  if (p.total) return `Descargando… ${Math.min(100, Math.floor((p.downloaded / p.total) * 100))} %`;
+  return `Descargando… ${(p.downloaded / 1_048_576).toLocaleString("es", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
+}
+
 export default function Updates() {
   const [version, setVersion] = useState<string | null>(null);
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
+  // Confirmación dentro de la ventana: `window.confirm` no funciona en el WebView de macOS.
+  const [confirming, setConfirming] = useState(false);
+  const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,11 +63,14 @@ export default function Updates() {
     invoke<UpdateStatus>("update_status")
       .then(setStatus)
       .catch(() => setStatus(null));
-    const unlisten = listen<Available>("update-available", (e) =>
-      setStatus((s) => (s ? { ...s, available: e.payload } : s)),
-    );
+    const subs = [
+      listen<Available>("update-available", (e) =>
+        setStatus((s) => (s ? { ...s, available: e.payload } : s)),
+      ),
+      listen<UpdateProgress>("update-progress", (e) => setProgress(e.payload)),
+    ];
     return () => {
-      unlisten.then((fn) => fn());
+      subs.forEach((s) => s.then((fn) => fn()));
     };
   }, []);
 
@@ -79,11 +97,10 @@ export default function Updates() {
     }
   }
 
+  // Solo se llama desde el botón de confirmación: nunca se instala sin ella.
   async function install() {
-    // Nunca se instala sin confirmación explícita.
-    if (!window.confirm("Se descargará la actualización y la app se reiniciará. ¿Continuar?")) {
-      return;
-    }
+    setConfirming(false);
+    setProgress(null);
     setInstalling(true);
     setError(null);
     try {
@@ -125,15 +142,40 @@ export default function Updates() {
               <span className="update-kicker">Nueva versión disponible</span>
               <span className="update-version">{status.available.version}</span>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary pad-18"
-              onClick={install}
-              disabled={installing}
-            >
-              {installing ? "Instalando…" : "Instalar y reiniciar"}
-            </button>
+            {!confirming && (
+              <button
+                type="button"
+                className="btn btn-primary pad-18"
+                onClick={() => setConfirming(true)}
+                disabled={installing}
+              >
+                {installing ? progressText(progress) : "Instalar y reiniciar"}
+              </button>
+            )}
           </div>
+          {confirming && (
+            <div
+              role="alertdialog"
+              aria-label="Confirmar la instalación"
+              className="update-confirm"
+            >
+              <span>
+                Se descargará la versión {status.available.version} y la app se reiniciará.
+              </span>
+              <div className="ob-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setConfirming(false)}
+                >
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-primary pad-18" onClick={install}>
+                  Sí, instalar
+                </button>
+              </div>
+            </div>
+          )}
           {noteLines(status.available.notes).length > 0 && (
             <ul className="update-notes">
               {noteLines(status.available.notes).map((n, i) => (

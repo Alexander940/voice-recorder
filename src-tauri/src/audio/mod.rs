@@ -4,8 +4,8 @@ mod processing;
 mod source;
 
 pub use processing::{
-    DEFAULT_MAX_DURATION, MIN_DURATION, PushOutcome, Recording, TARGET_RATE, display_level,
-    encode_wav, resample, rms, to_mono,
+    DEFAULT_MAX_DURATION, MIN_DURATION, PushOutcome, Recording, Segment, TARGET_RATE,
+    display_level, encode_wav, resample, rms, to_mono,
 };
 pub use source::{AudioSource, CpalSource, FileAudioSource, SampleCallback, input_device_names};
 
@@ -31,6 +31,32 @@ pub struct LevelEvent {
 }
 
 pub const LEVEL_INTERVAL: Duration = Duration::from_millis(50);
+
+/// Resultado de parar una grabación.
+#[derive(Debug)]
+pub struct Stopped {
+    /// Hubo trozos entregados antes de parar (grabación larga).
+    pub chunked: bool,
+    pub total: Duration,
+    /// Audio pendiente: toda la grabación, o lo grabado desde el último trozo.
+    pub rest: Option<Segment>,
+}
+
+/// Saca trozos de una grabación en curso sin pararla.
+#[derive(Clone)]
+pub struct Chunker(Arc<Mutex<Option<Recording>>>);
+
+impl Chunker {
+    /// El siguiente trozo si ya hay `len` de audio nuevo. Solo copia muestras
+    /// bajo el candado; codificar es cosa de quien llama.
+    pub fn take(&self, len: Duration, overlap: Duration) -> Option<Segment> {
+        self.0
+            .lock()
+            .ok()?
+            .as_mut()
+            .and_then(|r| r.take_chunk(len, overlap))
+    }
+}
 
 /// Grabación en curso sobre cualquier `AudioSource`.
 pub struct Recorder<S: AudioSource> {
@@ -83,17 +109,35 @@ impl<S: AudioSource> Recorder<S> {
     }
 
     /// Para y devuelve el WAV, o `None` si fue demasiado corto.
-    pub fn stop(mut self) -> Result<Option<Vec<u8>>, AudioError> {
+    pub fn stop(self) -> Result<Option<Vec<u8>>, AudioError> {
+        self.stop_chunked()?.rest.map(|s| s.encode()).transpose()
+    }
+
+    /// Para y devuelve el audio que falta por entregar y si hubo trozos antes.
+    pub fn stop_chunked(mut self) -> Result<Stopped, AudioError> {
         self.source.stop();
         let recording = self
             .recording
             .lock()
             .map_err(|_| AudioError("grabación corrupta".into()))?
             .take();
-        match recording {
-            Some(r) => r.finish(),
-            None => Ok(None),
-        }
+        Ok(match recording {
+            Some(r) => Stopped {
+                chunked: r.is_chunked(),
+                total: r.duration(),
+                rest: r.finish_segment(),
+            },
+            None => Stopped {
+                chunked: false,
+                total: Duration::ZERO,
+                rest: None,
+            },
+        })
+    }
+
+    /// Acceso a la grabación en curso para ir sacando trozos desde otro hilo.
+    pub fn chunker(&self) -> Chunker {
+        Chunker(self.recording.clone())
     }
 
     /// Para y descarta el audio.
@@ -186,6 +230,32 @@ mod tests {
         let wav = recorder.stop().unwrap().unwrap();
         assert_16k_mono(&wav, 1.0);
         assert_eq!(hits.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn chunker_takes_chunks_while_recording_and_stop_returns_the_rest() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("long.wav");
+        write_sine_wav(&path, 16_000, 1, 3.0);
+        let recorder = Recorder::start(
+            FileAudioSource::open(&path).unwrap(),
+            DEFAULT_MAX_DURATION,
+            |_| {},
+            || {},
+        )
+        .unwrap();
+        let chunker = recorder.chunker();
+        let first = chunker
+            .take(Duration::from_secs(2), Duration::from_millis(500))
+            .unwrap();
+        assert_eq!(first.samples.len(), 32_000);
+        let stopped = recorder.stop_chunked().unwrap();
+        assert!(stopped.chunked);
+        assert_eq!(stopped.total, Duration::from_secs(3));
+        // 1 s nuevo + 0,5 s de solape.
+        assert_eq!(stopped.rest.unwrap().samples.len(), 24_000);
+        // Tras parar, el chunker ya no entrega nada.
+        assert!(chunker.take(Duration::ZERO, Duration::ZERO).is_none());
     }
 
     #[test]

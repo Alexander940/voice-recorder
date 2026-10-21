@@ -39,8 +39,8 @@ pub struct Transcript {
 pub enum SttError {
     /// API key ausente, inválida o sin permisos (401/403).
     Auth,
-    /// Límite de peticiones (429).
-    RateLimited,
+    /// Límite de peticiones (429), con la espera que indique `Retry-After`.
+    RateLimited(Option<Duration>),
     /// La API rechazó la petición (4xx), con su mensaje.
     BadRequest(String),
     /// Error del servidor (5xx) tras reintentar.
@@ -55,7 +55,7 @@ impl fmt::Display for SttError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SttError::Auth => f.write_str("La API key de Groq no es válida o falta"),
-            SttError::RateLimited => {
+            SttError::RateLimited(_) => {
                 f.write_str("Groq: demasiadas peticiones, espera unos segundos")
             }
             SttError::BadRequest(m) => write!(f, "Groq rechazó el audio: {m}"),
