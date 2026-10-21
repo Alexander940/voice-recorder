@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Onboarding — API key de Groq</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#4338CA}a:hover{color:#312E81}
+</style>
+</helmet>
+<div style="width: 640px; height: 520px; box-sizing: border-box; background: #FFFFFF; font-family: Geist, system-ui, sans-serif; color: #15171C; display: flex; flex-direction: column">
+  <div style="height: 36px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #E6E8EC; background: #F6F7F9; font-size: 12px; font-weight: 500; color: #5B616E">Voice Recorder</div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px; padding: 40px 56px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5B616E">Transcripción</span>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.02em">API key de Groq</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #5B616E">Se usa para transcribir tu voz con Whisper. Créala gratis en <a href="https://console.groq.com">console.groq.com</a> (con q).</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <label for="groq-key" style="font-size: 13px; font-weight: 600">API key</label>
+      <input id="groq-key" type="password" value="gsk_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" style="height: 44px; box-sizing: border-box; padding: 0 14px; border: 1.5px solid {{accent}}; border-radius: 10px; font: 500 14px 'Geist Mono', monospace; color: #15171C; outline: 3px solid #E0E7FF">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5B616E">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B616E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        Se guarda en el llavero del sistema. Nunca en texto plano.
+      </div>
+    </div>
+    <div role="alert" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FECACA; font-size: 13px; line-height: 1.45; color: #991B1B">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+      <span>Esta key no parece de Groq: debe empezar por <strong style="font-family: 'Geist Mono', monospace">gsk_</strong>. Las keys de xAI (Grok) no sirven.</span>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #E6E8EC">
+    <div style="display: flex; gap: 6px; align-items: center" aria-label="Paso 2 de 5">
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #A5B4FC"></span>
+      <span style="width: 20px; height: 6px; border-radius: 3px; background: {{accent}}"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="font-size: 12px; color: #5B616E; margin-left: 8px">Paso 2 de 5</span>
+    </div>
+    <div style="display: flex; gap: 8px">
+      <button style="height: 40px; padding: 0 16px; border: 1px solid #D5D8DE; border-radius: 10px; background: #FFFFFF; color: #15171C; font: 500 14px Geist, system-ui, sans-serif">Atrás</button>
+      <button style="height: 40px; padding: 0 20px; border: 0; border-radius: 10px; background: {{accent}}; color: #FFFFFF; font: 600 14px Geist, system-ui, sans-serif">Validar y guardar</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4F46E5","options":["#4F46E5","#15171C","#0F766E","#C2410C"]},"$preview":{"width":640,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#4F46E5' };
+  }
+}
+</script>
+</body>
+</html>

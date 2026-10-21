@@ -1,163 +1,105 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Settings, { type AppSettings } from "./Settings";
+import Settings, { shortcutFromEvent, type AppSettings } from "./Settings";
+import * as fx from "./harness/fixtures";
+import { called, Reject, setCommands } from "./test-tauri";
 
-const invoke = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invoke(...args),
-}));
+vi.mock("@tauri-apps/api/core", () => import("./test-tauri"));
 
-// La sección de actualizaciones escucha eventos del backend.
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(() => Promise.resolve(() => {})),
-}));
+const settings = fx.settings as AppSettings;
 
-const DEFAULTS: AppSettings = {
-  version: 1,
-  general: { autostart: false },
-  hotkey: { shortcut: "Ctrl+Alt+Space", mode: "hold" },
-  audio: { device: null, max_duration_secs: 300 },
-  transcription: { model: "whisper-large-v3-turbo", language: null },
-  ai: { cleanup: true },
-  output: { copy_only: false },
-  privacy: { enabled: true, retention_days: 30 },
-  feedback: { sounds: true },
-  updates: { enabled: true },
-};
+describe("shortcutFromEvent", () => {
+  const ev = (o: Partial<KeyboardEvent>) => ({
+    key: "",
+    code: "",
+    ctrlKey: false,
+    altKey: false,
+    shiftKey: false,
+    metaKey: false,
+    ...o,
+  });
 
-beforeEach(() => {
-  invoke.mockReset();
-  invoke.mockImplementation((cmd: string, args: Record<string, unknown>) => {
-    switch (cmd) {
-      case "settings_get":
-        return Promise.resolve(DEFAULTS);
-      case "settings_update":
-        return Promise.resolve(args.settings);
-      case "list_input_devices":
-        return Promise.resolve(["Micrófono USB", "Auriculares"]);
-      case "get_key_status":
-        return Promise.resolve({ groq: true, anthropic: false });
-      case "delete_api_key":
-        return Promise.resolve({ groq: false, anthropic: false });
-      case "modes_list":
-        return Promise.resolve({ modes: [], active: "clean" });
-      case "update_status":
-        return Promise.resolve({ configured: false, enabled: true, available: null });
-      case "vocabulary_get":
-        return Promise.resolve({ terms: [], replacements: [] });
-      default:
-        return Promise.resolve(null);
-    }
+  it("usa los nombres del backend en cada sistema", () => {
+    expect(shortcutFromEvent(ev({ key: " ", code: "Space", altKey: true }), true)).toBe(
+      "Option+Space",
+    );
+    expect(
+      shortcutFromEvent(ev({ key: "k", code: "KeyK", ctrlKey: true, altKey: true }), false),
+    ).toBe("Ctrl+Alt+K");
+    expect(shortcutFromEvent(ev({ key: "1", code: "Digit1", metaKey: true }), true)).toBe("Cmd+1");
+  });
+
+  it("ignora teclas sueltas y modificadores solos", () => {
+    expect(shortcutFromEvent(ev({ key: "a", code: "KeyA" }), false)).toBeNull();
+    expect(
+      shortcutFromEvent(ev({ key: "Control", code: "ControlLeft", ctrlKey: true })),
+    ).toBeNull();
   });
 });
 
-async function renderSettings() {
-  render(<Settings />);
-  await screen.findByRole("heading", { name: "General" });
-  await act(async () => {});
-}
-
-const lastUpdate = () => {
-  const calls = invoke.mock.calls.filter(([c]) => c === "settings_update");
-  return calls[calls.length - 1][1].settings as AppSettings;
-};
-
 describe("Settings", () => {
-  it("muestra todas las secciones", async () => {
-    await renderSettings();
-    for (const name of [
-      "General",
-      "Atajos",
-      "Audio",
-      "Transcripción",
-      "IA",
-      "Cuentas",
-      "Privacidad",
-      "Actualizaciones",
-    ]) {
-      expect(screen.getByRole("heading", { name })).toBeInTheDocument();
-    }
+  beforeEach(() =>
+    setCommands({
+      settings_get: settings,
+      list_input_devices: ["USB Mic"],
+      settings_update: (a: Record<string, unknown>) => a.settings,
+    }),
+  );
+
+  it("muestra los valores guardados", async () => {
+    render(<Settings />);
+    expect(await screen.findByRole("heading", { name: "Ajustes" })).toBeInTheDocument();
+    expect(screen.getByText("Option")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Pulsar para empezar y terminar" })).toBeChecked();
+    expect(screen.getByLabelText("Micrófono")).toHaveValue("");
+    expect(screen.getByRole("option", { name: "USB Mic" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /Limpiar el texto con Claude/ })).toBeChecked();
+    expect(screen.getByRole("switch", { name: /Solo copiar/ })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Guardar ajustes" })).toBeDisabled();
   });
 
-  it("General: inicio con el sistema y sonidos", async () => {
-    await renderSettings();
-    fireEvent.click(screen.getByLabelText("Iniciar con el sistema"));
-    fireEvent.click(screen.getByLabelText("Sonidos al empezar, terminar y en errores"));
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().general.autostart).toBe(true);
-    expect(lastUpdate().feedback.sounds).toBe(false);
-    expect(screen.getByRole("status")).toHaveTextContent("Ajustes guardados");
+  it("avisa de cambios sin guardar, descarta y guarda", async () => {
+    const onSaved = vi.fn();
+    render(<Settings onSaved={onSaved} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Mantener pulsado" }));
+    expect(screen.getByText("Hay cambios sin guardar")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(screen.queryByText("Hay cambios sin guardar")).toBeNull();
+
+    fireEvent.click(screen.getByRole("switch", { name: /Sonidos/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar ajustes" }));
+    expect(await screen.findByText("Ajustes guardados")).toBeInTheDocument();
+    const sent = called("settings_update")[0].args!.settings as AppSettings;
+    expect(sent.feedback.sounds).toBe(false);
+    expect(sent.hotkey.mode).toBe("toggle");
+    expect(onSaved).toHaveBeenCalledWith(sent);
   });
 
-  it("Atajos: cambia atajo y modo; muestra el conflicto del backend", async () => {
-    await renderSettings();
-    fireEvent.change(screen.getByLabelText("Atajo de dictado"), {
-      target: { value: "Ctrl+Shift+D" },
+  it("captura un atajo nuevo con el teclado", async () => {
+    render(<Settings />);
+    const button = await screen.findByRole("button", { name: "Cambiar" });
+    fireEvent.click(button);
+    expect(screen.getByText("Pulsa la combinación…")).toBeInTheDocument();
+    fireEvent.keyDown(button, { key: "k", code: "KeyK", ctrlKey: true, altKey: true });
+    expect(screen.getByText("K")).toBeInTheDocument();
+    expect(screen.getByText("Hay cambios sin guardar")).toBeInTheDocument();
+  });
+
+  it("la retención se desactiva sin historial", async () => {
+    render(<Settings />);
+    fireEvent.click(await screen.findByRole("switch", { name: /Guardar historial/ }));
+    expect(screen.getByLabelText(/Conservar el historial/)).toBeDisabled();
+  });
+
+  it("muestra el error del backend al guardar", async () => {
+    setCommands({
+      settings_get: settings,
+      list_input_devices: [],
+      settings_update: () => new Reject("El atajo ya está en uso"),
     });
-    fireEvent.change(screen.getByLabelText("Modo del atajo"), { target: { value: "toggle" } });
-    invoke.mockRejectedValueOnce("El atajo «Ctrl+Shift+D» ya está en uso por otra aplicación");
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().hotkey).toEqual({ shortcut: "Ctrl+Shift+D", mode: "toggle" });
-    expect(screen.getByRole("alert")).toHaveTextContent("ya está en uso");
-  });
-
-  it("Audio: lista micrófonos y guarda dispositivo y duración", async () => {
-    await renderSettings();
-    const select = screen.getByLabelText("Micrófono");
-    expect(within(select).getAllByRole("option")).toHaveLength(3);
-    fireEvent.change(select, { target: { value: "Auriculares" } });
-    fireEvent.change(screen.getByLabelText("Duración máxima (minutos)"), {
-      target: { value: "10" },
-    });
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().audio).toEqual({ device: "Auriculares", max_duration_secs: 600 });
-  });
-
-  it("Transcripción: modelo e idioma (vacío = automático)", async () => {
-    await renderSettings();
-    fireEvent.change(screen.getByLabelText("Modelo"), { target: { value: "whisper-large-v3" } });
-    fireEvent.change(screen.getByLabelText("Idioma"), { target: { value: "es" } });
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().transcription).toEqual({ model: "whisper-large-v3", language: "es" });
-  });
-
-  it("IA: limpieza y solo copiar", async () => {
-    await renderSettings();
-    fireEvent.click(screen.getByLabelText("Limpiar el texto con Claude"));
-    fireEvent.click(screen.getByLabelText("Solo copiar al portapapeles (no pegar)"));
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().ai.cleanup).toBe(false);
-    expect(lastUpdate().output.copy_only).toBe(true);
-  });
-
-  it("Cuentas: estado de las keys y borrar", async () => {
-    await renderSettings();
-    const list = screen.getByRole("list", { name: "API keys" });
-    expect(list).toHaveTextContent("Groq: configurada");
-    expect(list).toHaveTextContent("Anthropic: sin configurar");
-    await act(async () => fireEvent.click(within(list).getByText("Borrar")));
-    expect(invoke).toHaveBeenCalledWith("delete_api_key", { provider: "groq" });
-    expect(list).toHaveTextContent("Groq: sin configurar");
-  });
-
-  it("Cuentas: añadir abre el formulario de key", async () => {
-    await renderSettings();
-    fireEvent.click(screen.getByText("Añadir"));
-    expect(screen.getByRole("heading", { name: "API key de Anthropic" })).toBeInTheDocument();
-  });
-
-  it("Privacidad: desactivar historial bloquea la retención", async () => {
-    await renderSettings();
-    fireEvent.click(screen.getByLabelText("Guardar historial de dictados"));
-    expect(screen.getByLabelText("Conservar (días, 0 = siempre)")).toBeDisabled();
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().privacy).toEqual({ enabled: false, retention_days: 30 });
-  });
-
-  it("Actualizaciones: el interruptor se guarda con los ajustes", async () => {
-    await renderSettings();
-    fireEvent.click(screen.getByLabelText("Buscar actualizaciones al iniciar y una vez al día"));
-    await act(async () => fireEvent.click(screen.getByText("Guardar ajustes")));
-    expect(lastUpdate().updates.enabled).toBe(false);
+    render(<Settings />);
+    fireEvent.click(await screen.findByRole("switch", { name: /Sonidos/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar ajustes" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("El atajo ya está en uso");
   });
 });

@@ -1,0 +1,176 @@
+@import "./fonts.css";
+@import "./tokens.css";
+
+html[data-window="overlay"],
+html[data-window="overlay"] body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.overlay-root {
+  /* La ventana se ajusta al contenido (overlay_fit): sin centrar. */
+  display: flex;
+  justify-content: flex-start;
+  padding: 16px;
+  font-family: var(--font);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.overlay-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--overlay-bg);
+  color: var(--overlay-fg);
+  box-shadow: var(--overlay-shadow);
+}
+
+.pill.recording {
+  padding: 0 8px 0 18px;
+}
+
+.pill.processing {
+  padding: 0 20px 0 18px;
+}
+
+.pill.pasted {
+  gap: 10px;
+  padding: 0 20px 0 16px;
+}
+
+.pill.error {
+  padding: 0 8px 0 16px;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--rec);
+  box-shadow: 0 0 0 4px var(--rec-glow);
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.bar {
+  fill: var(--overlay-fg);
+  opacity: 0.28;
+}
+
+.bar.on {
+  opacity: 1;
+}
+
+.pill-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--overlay-chip);
+}
+
+.pill-time {
+  font: 500 14px var(--mono);
+  min-width: 36px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill-close {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 17px;
+  background: var(--overlay-button);
+  color: var(--overlay-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pill-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pill-sub {
+  font-size: 13px;
+  color: var(--overlay-muted);
+}
+
+.pill-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pill-badge.ok {
+  background: var(--ok-solid);
+}
+
+.pill-badge.danger {
+  background: var(--rec);
+}
+
+.pill-action {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 17px;
+  background: var(--overlay-fg);
+  color: var(--ink);
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+
+.spin-track {
+  stroke: var(--overlay-chip);
+}
+
+.spin-head {
+  stroke: var(--overlay-fg);
+}
+
+svg:has(.spin-head) {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.overlay-hint {
+  align-self: flex-start;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+
+.mono {
+  font-family: var(--mono);
+}

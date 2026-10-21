@@ -1,92 +1,81 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Onboarding from "./Onboarding";
+import * as fx from "./harness/fixtures";
+import { called, fire, Reject, setCommands } from "./test-tauri";
 
-type Handler = (e: { payload: unknown }) => void;
-const handlers: Record<string, Handler> = {};
-const invoke = vi.fn();
+vi.mock("@tauri-apps/api/core", () => import("./test-tauri"));
+vi.mock("@tauri-apps/api/event", () => import("./test-tauri"));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invoke(...args),
-}));
-
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn((name: string, handler: Handler) => {
-    handlers[name] = handler;
-    return Promise.resolve(() => delete handlers[name]);
-  }),
-}));
-
-const click = (name: RegExp) => fireEvent.click(screen.getByRole("button", { name }));
-
-async function saveKey(value: string) {
-  fireEvent.change(screen.getByLabelText("API key"), { target: { value } });
-  await act(async () => click(/validar y guardar/i));
-}
+const next = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
 
 describe("Onboarding", () => {
-  beforeEach(() => {
-    invoke.mockReset();
-    for (const k of Object.keys(handlers)) delete handlers[k];
-  });
+  beforeEach(() => setCommands({ save_api_key: { groq: true, anthropic: false } }));
 
-  it("paso 1: bienvenida → Groq", () => {
-    render(<Onboarding onDone={() => {}} />);
-    expect(screen.getByText("Paso 1 de 5")).toBeInTheDocument();
-    click(/empezar/i);
-    expect(screen.getByRole("heading", { name: "API key de Groq" })).toBeInTheDocument();
-  });
-
-  it("paso 2: Groq exige key y envía provider + key al backend", async () => {
-    invoke.mockResolvedValue({ groq: true, anthropic: false });
-    render(<Onboarding onDone={() => {}} />);
-    click(/empezar/i);
-    expect(screen.getByRole("button", { name: /validar y guardar/i })).toBeDisabled();
-    await saveKey("gsk_abc");
-    expect(invoke).toHaveBeenCalledWith("save_api_key", { provider: "groq", key: "gsk_abc" });
-    expect(screen.getByRole("heading", { name: "API key de Anthropic" })).toBeInTheDocument();
-  });
-
-  it("paso 2: muestra el error del backend y no avanza", async () => {
-    invoke.mockRejectedValue("No parece una key de Groq: debe empezar por «gsk_»");
-    render(<Onboarding onDone={() => {}} />);
-    click(/empezar/i);
-    await saveKey("xai-123");
-    expect(screen.getByRole("alert")).toHaveTextContent("gsk_");
-    expect(screen.getByRole("heading", { name: "API key de Groq" })).toBeInTheDocument();
-    expect(screen.getByLabelText("API key")).toHaveValue("xai-123");
-  });
-
-  it("paso 3: Anthropic se puede guardar u omitir", async () => {
-    invoke.mockResolvedValue({ groq: true, anthropic: true });
-    render(<Onboarding onDone={() => {}} />);
-    click(/empezar/i);
-    await saveKey("gsk_abc");
-    click(/omitir por ahora/i);
-    expect(screen.getByRole("heading", { name: "Permisos" })).toBeInTheDocument();
-  });
-
-  it("pasos 4 y 5: permisos → prueba, muestra la transcripción y termina", async () => {
-    invoke.mockResolvedValue({ groq: true, anthropic: false });
+  it("recorre los cinco pasos", async () => {
     const onDone = vi.fn();
     render(<Onboarding onDone={onDone} />);
-    click(/empezar/i);
-    await saveKey("gsk_abc");
-    click(/omitir por ahora/i);
-    click(/continuar/i);
-    expect(screen.getByRole("heading", { name: "Prueba de dictado" })).toBeInTheDocument();
-    await act(async () => {});
-    act(() => handlers["transcription"]({ payload: "hola mundo" }));
-    expect(screen.getByTestId("transcript")).toHaveTextContent("hola mundo");
-    click(/terminar/i);
+    expect(screen.getByText("Paso 1 de 5")).toBeInTheDocument();
+    expect(screen.getByText("3. Púlsalo otra vez")).toBeInTheDocument();
+    next("Empezar");
+
+    expect(screen.getByRole("heading", { name: "API key de Groq" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("API key"), { target: { value: "gsk_valida" } });
+    next("Validar y guardar");
+    expect(
+      await screen.findByRole("heading", { name: "API key de Anthropic" }),
+    ).toBeInTheDocument();
+    expect(called("save_api_key")[0].args).toEqual({ provider: "groq", key: "gsk_valida" });
+    // La key no se arrastra al paso siguiente.
+    expect(screen.getByLabelText("API key")).toHaveValue("");
+
+    next("Omitir por ahora");
+    expect(screen.getByText("Paso 4 de 5")).toBeInTheDocument();
+    next("Continuar");
+    expect(screen.getByRole("heading", { name: "Prueba tu primer dictado" })).toBeInTheDocument();
+    next("Saltar prueba");
     expect(onDone).toHaveBeenCalled();
   });
 
-  it("la key no queda en el input tras guardarla", async () => {
-    invoke.mockResolvedValue({ groq: true, anthropic: false });
-    render(<Onboarding onDone={() => {}} />);
-    click(/empezar/i);
-    await saveKey("gsk_secreta");
-    expect(screen.queryByDisplayValue("gsk_secreta")).not.toBeInTheDocument();
+  it("Atrás vuelve al paso anterior", () => {
+    render(<Onboarding onDone={() => {}} initialStep="anthropic" />);
+    next("Atrás");
+    expect(screen.getByRole("heading", { name: "API key de Groq" })).toBeInTheDocument();
+  });
+
+  it("explica una key con formato incorrecto", async () => {
+    setCommands({
+      save_api_key: () => new Reject("No parece una key de Groq: debe empezar por «gsk_»"),
+    });
+    render(<Onboarding onDone={() => {}} initialStep="groq" />);
+    fireEvent.change(screen.getByLabelText("API key"), { target: { value: "xai-1" } });
+    next("Validar y guardar");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Esta key no parece de Groq: debe empezar por gsk_. Las keys de xAI (Grok) no sirven.",
+    );
+  });
+
+  it("muestra el resultado de la prueba de dictado", () => {
+    render(<Onboarding onDone={() => {}} initialStep="test" />);
+    expect(screen.getByText("Esperando tu dictado…")).toBeInTheDocument();
+    act(() => fire("dictation-result", fx.dictationResult));
+    expect(screen.getByTestId("transcript")).toHaveTextContent("Hola, esto es una prueba.");
+    expect(screen.getByText("Modo Limpio")).toBeInTheDocument();
+    expect(screen.getByText("4,2 s de audio · procesado en 1,1 s")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Terminar" })).toBeInTheDocument();
+  });
+
+  it("en macOS guía los permisos y abre Accesibilidad", () => {
+    const ua = vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Macintosh");
+    render(<Onboarding onDone={() => {}} initialStep="permissions" />);
+    expect(screen.getByRole("heading", { name: "Dos permisos y listo" })).toBeInTheDocument();
+    next("Abrir Ajustes");
+    expect(called("open_link")[0].args).toEqual({ target: "accessibility" });
+    ua.mockRestore();
+  });
+
+  it("fuera de macOS no pide permisos", () => {
+    render(<Onboarding onDone={() => {}} initialStep="permissions" />);
+    expect(screen.getByRole("heading", { name: "Sin permisos adicionales" })).toBeInTheDocument();
   });
 });

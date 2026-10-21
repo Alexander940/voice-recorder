@@ -52,6 +52,29 @@ impl Provider {
     }
 }
 
+/// Las keys reales son mucho más largas: algo más corto es un error al copiarla.
+const MIN_KEY_LEN: usize = 40;
+
+/// Pista para reconocer una key guardada: prefijo y últimos 4 caracteres.
+/// Es todo lo que el frontend llega a ver de una key.
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize)]
+pub struct KeyHints {
+    pub groq: Option<String>,
+    pub anthropic: Option<String>,
+}
+
+pub fn mask(provider: Provider, key: &str) -> String {
+    let tail: String = key
+        .chars()
+        .rev()
+        .take(4)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
+    format!("{}••••{tail}", provider.prefix())
+}
+
 /// Lo único que el frontend sabe de las keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize)]
 pub struct KeyStatus {
@@ -212,6 +235,14 @@ impl<S: SecretStore, V: KeyValidator> KeyManager<S, V> {
             .filter(|k| !k.trim().is_empty())
     }
 
+    pub fn hints(&self) -> KeyHints {
+        let hint = |p| self.get(p).map(|k| mask(p, k.trim()));
+        KeyHints {
+            groq: hint(Provider::Groq),
+            anthropic: hint(Provider::Anthropic),
+        }
+    }
+
     pub fn status(&self) -> KeyStatus {
         KeyStatus {
             groq: self.get(Provider::Groq).is_some(),
@@ -222,7 +253,7 @@ impl<S: SecretStore, V: KeyValidator> KeyManager<S, V> {
     /// Comprueba formato, valida con el proveedor y solo entonces guarda.
     pub fn save(&self, provider: Provider, key: &str) -> Result<KeyStatus, KeyError> {
         let key = key.trim();
-        if !key.starts_with(provider.prefix()) {
+        if !key.starts_with(provider.prefix()) || key.len() < MIN_KEY_LEN {
             return Err(KeyError::WrongFormat(provider));
         }
         self.validator.validate(provider, key)?;
@@ -299,6 +330,27 @@ pub(crate) mod tests {
             }
         );
         assert_eq!(m.get(Provider::Groq).as_deref(), Some(FAKE_GROQ));
+    }
+
+    #[test]
+    fn hints_show_only_prefix_and_last_four() {
+        without_env();
+        let m = KeyManager::new(MemoryStore::default(), AcceptAll);
+        assert_eq!(m.hints(), KeyHints::default());
+        m.save(Provider::Groq, FAKE_GROQ).unwrap();
+        let hint = m.hints().groq.unwrap();
+        assert_eq!(hint, "gsk_••••ABCD");
+        assert!(!hint.contains("FAKE"));
+        assert_eq!(m.hints().anthropic, None);
+    }
+
+    #[test]
+    fn too_short_key_is_a_format_error() {
+        let m = KeyManager::new(MemoryStore::default(), RejectAll);
+        let err = m
+            .save(Provider::Groq, "gsk_xxxxxxxxxxxxxxxxxxxx")
+            .unwrap_err();
+        assert_eq!(err, KeyError::WrongFormat(Provider::Groq));
     }
 
     #[test]

@@ -92,7 +92,7 @@ impl Modes {
 /// Avisa a la bandeja y al overlay de que cambió el modo o la lista.
 pub fn notify_changed<R: Runtime>(app: &AppHandle<R>) {
     let state = app.state::<Modes>().snapshot();
-    let _ = crate::tray::rebuild_menu(app, &state);
+    let _ = crate::tray::rebuild_menu(app);
     let _ = app.emit("mode-changed", state.active_mode().name.clone());
 }
 

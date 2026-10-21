@@ -79,6 +79,22 @@ impl HotkeyController {
         }
     }
 
+    /// Empieza o termina desde la interfaz (menú de la bandeja), en cualquier modo.
+    pub fn toggle_external(&mut self, now: Instant) -> DictationAction {
+        if self.is_recording() {
+            self.state = State::Idle;
+            DictationAction::Stop
+        } else {
+            self.state = State::Recording { since: now };
+            DictationAction::Start
+        }
+    }
+
+    /// Cancela desde la interfaz (botón del overlay).
+    pub fn cancel_external(&mut self) -> Option<DictationAction> {
+        self.handle(HotkeyInput::Escape)
+    }
+
     /// Vuelve a reposo sin emitir acción (p. ej. el micrófono no arrancó).
     pub fn reset(&mut self) {
         self.state = State::Idle;
@@ -128,6 +144,28 @@ mod tests {
 
     fn ms(base: Instant, n: u64) -> Instant {
         base + Duration::from_millis(n)
+    }
+
+    #[test]
+    fn external_toggle_starts_and_stops_in_both_modes() {
+        let t = Instant::now();
+        for mode in [HotkeyMode::Hold, HotkeyMode::Toggle] {
+            let mut c = HotkeyController::new(mode);
+            assert_eq!(c.toggle_external(t), Start);
+            assert!(c.is_recording());
+            assert_eq!(c.toggle_external(ms(t, 10)), Stop);
+            assert!(!c.is_recording());
+        }
+    }
+
+    #[test]
+    fn external_cancel_only_while_recording() {
+        let t = Instant::now();
+        let mut c = HotkeyController::new(HotkeyMode::Toggle);
+        assert_eq!(c.cancel_external(), None);
+        c.toggle_external(t);
+        assert_eq!(c.cancel_external(), Some(Cancel));
+        assert!(!c.is_recording());
     }
 
     #[test]

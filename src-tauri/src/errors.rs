@@ -115,6 +115,38 @@ impl AppError {
     }
 }
 
+impl AppError {
+    /// Título corto y detalle para el overlay (una sola línea cada uno).
+    pub fn overlay(&self, lang: Lang) -> (String, String) {
+        use AppError::*;
+        let es = lang == Lang::Es;
+        let title = match self {
+            NoNetwork if es => "Sin conexión con Groq".to_string(),
+            NoNetwork => "No connection to Groq".to_string(),
+            MissingKey(p) if es => format!("Falta la key de {}", p.name()),
+            MissingKey(p) => format!("{} key missing", p.name()),
+            InvalidKey(p) if es => format!("{} rechazó la key", p.name()),
+            InvalidKey(p) => format!("{} rejected the key", p.name()),
+            RateLimited(p) if es => format!("Demasiadas peticiones a {}", p.name()),
+            RateLimited(p) => format!("Too many requests to {}", p.name()),
+            NoMicrophone if es => "Sin micrófono".to_string(),
+            NoMicrophone => "No microphone".to_string(),
+            Transcription(_) if es => "Error al transcribir".to_string(),
+            Transcription(_) => "Transcription failed".to_string(),
+            Paste(_) if es => "No se pudo pegar".to_string(),
+            Paste(_) => "Couldn't paste".to_string(),
+        };
+        let detail = match (self, es) {
+            (Paste(_), true) => "El texto está en el portapapeles",
+            (Paste(_), false) => "The text is on your clipboard",
+            (e, true) if e.retryable() => "El audio sigue guardado",
+            (e, false) if e.retryable() => "Your audio was kept",
+            _ => "",
+        };
+        (title, detail.to_string())
+    }
+}
+
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (title, body) = self.notification(Lang::Es);
@@ -150,6 +182,23 @@ mod tests {
         }
         let titles: std::collections::HashSet<_> = es.iter().map(|(t, _)| t).collect();
         assert_eq!(titles.len(), es.len(), "títulos repetidos");
+    }
+
+    #[test]
+    fn overlay_texts_are_short_and_mention_the_kept_audio() {
+        let (t, d) = AppError::NoNetwork.overlay(Lang::Es);
+        assert_eq!(t, "Sin conexión con Groq");
+        assert_eq!(d, "El audio sigue guardado");
+        let (t, d) = AppError::NoMicrophone.overlay(Lang::En);
+        assert_eq!(t, "No microphone");
+        assert_eq!(d, "");
+        for e in all() {
+            for lang in [Lang::Es, Lang::En] {
+                let (t, d) = e.overlay(lang);
+                assert!(t.chars().count() <= 32, "{t}");
+                assert!(d.chars().count() <= 34, "{d}");
+            }
+        }
     }
 
     #[test]

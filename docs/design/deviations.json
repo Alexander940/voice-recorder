@@ -1,0 +1,8 @@
+{
+  "note": "Desviaciones aceptadas frente a los mockups. Congelado: cambiarlo requiere una enmienda aprobada por el usuario.",
+  "ignore_text": {
+    "Onboarding-Permisos": ["Concedido"]
+  },
+  "screens_without_mockup": ["onboarding-anthropic (mismo layout que onboarding-groq)"],
+  "placeholders_kept": ["[NOTA DE LA VERSIÓN 1]", "[NOTA DE LA VERSIÓN 2]"]
+}

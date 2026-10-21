@@ -32,6 +32,8 @@ pub struct UpdateStatus {
     pub configured: bool,
     pub enabled: bool,
     pub available: Option<Available>,
+    /// Última comprobación, en milisegundos desde 1970.
+    pub last_checked_ms: Option<u64>,
 }
 
 /// Endpoint y clave pública de `plugins.updater` en tauri.conf.json.
@@ -51,10 +53,21 @@ fn checker<R: Runtime>(app: &AppHandle<R>) -> UpdateChecker {
 
 fn tick<R: Runtime>(app: &AppHandle<R>) {
     let enabled = app.state::<SettingsState>().get().updates.enabled;
+    let last = *app
+        .state::<UpdateState>()
+        .last_check
+        .lock()
+        .expect("update poisoned");
+    if should_check(enabled, last, SystemTime::now()) {
+        check(app);
+    }
+}
+
+/// Comprueba ya (al iniciar, una vez al día o con «Buscar ahora»).
+fn check<R: Runtime>(app: &AppHandle<R>) {
     let checker = checker(app);
     let state = app.state::<UpdateState>();
-    let last = *state.last_check.lock().expect("update poisoned");
-    if !checker.configured() || !should_check(enabled, last, SystemTime::now()) {
+    if !checker.configured() {
         return;
     }
     *state.last_check.lock().expect("update poisoned") = Some(SystemTime::now());
@@ -89,11 +102,32 @@ pub fn start<R: Runtime>(app: &AppHandle<R>) {
 
 #[tauri::command]
 pub fn update_status(app: AppHandle, state: State<'_, UpdateState>) -> UpdateStatus {
+    status(&app, &state)
+}
+
+fn status<R: Runtime>(app: &AppHandle<R>, state: &UpdateState) -> UpdateStatus {
     UpdateStatus {
-        configured: checker(&app).configured(),
+        configured: checker(app).configured(),
         enabled: app.state::<SettingsState>().get().updates.enabled,
         available: state.available.lock().expect("update poisoned").clone(),
+        last_checked_ms: state
+            .last_check
+            .lock()
+            .expect("update poisoned")
+            .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64),
     }
+}
+
+/// «Buscar ahora»: la comprobación hace una petición de red bloqueante.
+#[tauri::command]
+pub async fn update_check_now(app: AppHandle) -> Result<UpdateStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        check(&app);
+        status(&app, &app.state::<UpdateState>())
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Descarga, verifica la firma e instala; después reinicia la app.

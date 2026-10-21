@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Menú de la bandeja</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#4338CA}a:hover{color:#312E81}
+</style>
+</helmet>
+<div style="width: 600px; height: 440px; box-sizing: border-box; background: #ECEEF2; font-family: Geist, system-ui, sans-serif; color: #15171C; display: flex; flex-direction: column">
+  <div style="height: 30px; flex-shrink: 0; background: rgba(255,255,255,0.75); border-bottom: 1px solid #D5D8DE; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 16px; font-size: 13px; color: #3A3F4A">
+    <span aria-hidden="true">Wi-Fi</span>
+    <span style="width: 26px; height: 22px; border-radius: 5px; background: rgba(21,23,28,0.12); display: flex; align-items: center; justify-content: center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15171C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Voice Recorder"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+    </span>
+    <span aria-hidden="true">mar 21 oct 10:42</span>
+  </div>
+  <div style="flex-grow: 1; position: relative">
+    <div role="menu" aria-label="Voice Recorder" style="position: absolute; top: 6px; right: 120px; width: 260px; box-sizing: border-box; padding: 6px; border-radius: 12px; background: #FFFFFF; border: 1px solid #D5D8DE; box-shadow: 0 12px 32px rgba(21,23,28,0.18); display: flex; flex-direction: column">
+      <div style="padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><span style="width: 8px; height: 8px; border-radius: 4px; background: #8A8F98"></span>Listo para dictar</div>
+        <span style="font-size: 12px; color: #5B616E">Modo Limpio · <span style="font-family: 'Geist Mono', monospace">Option+Space</span></span>
+      </div>
+      <div style="height: 1px; background: #E6E8EC; margin: 2px 4px"></div>
+      <button role="menuitem" style="display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left">Empezar a dictar<span style="font: 500 12px 'Geist Mono', monospace; color: #5B616E">⌥Space</span></button>
+      <button role="menuitem" aria-haspopup="true" aria-expanded="true" style="display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 10px; border: 0; border-radius: 7px; background: {{accent}}; font: 500 14px Geist, system-ui, sans-serif; color: #FFFFFF; text-align: left">Modo<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+      <button role="menuitem" style="display: flex; align-items: center; height: 34px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left">Historial</button>
+      <button role="menuitem" style="display: flex; align-items: center; height: 34px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left">Ajustes…</button>
+      <div style="height: 1px; background: #E6E8EC; margin: 4px"></div>
+      <button role="menuitem" style="display: flex; align-items: center; height: 34px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left">Salir de Voice Recorder</button>
+    </div>
+    <div role="menu" aria-label="Modo" style="position: absolute; top: 60px; right: 384px; width: 196px; box-sizing: border-box; padding: 6px; border-radius: 12px; background: #FFFFFF; border: 1px solid #D5D8DE; box-shadow: 0 12px 32px rgba(21,23,28,0.18); display: flex; flex-direction: column">
+      <button role="menuitemradio" aria-checked="false" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left"><span style="width: 14px"></span>Literal</button>
+      <button role="menuitemradio" aria-checked="true" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: #EEF2FF; font: 600 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Limpio</button>
+      <button role="menuitemradio" aria-checked="false" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left"><span style="width: 14px"></span>Email</button>
+      <button role="menuitemradio" aria-checked="false" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left"><span style="width: 14px"></span>Mensaje</button>
+      <button role="menuitemradio" aria-checked="false" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left"><span style="width: 14px"></span>Prompt técnico</button>
+      <button role="menuitemradio" aria-checked="false" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font: 500 14px Geist, system-ui, sans-serif; color: #15171C; text-align: left"><span style="width: 14px"></span>Traducir al inglés</button>
+    </div>
+    <div style="position: absolute; left: 24px; right: 24px; bottom: 20px; display: flex; gap: 10px; align-items: center">
+      <span style="font-size: 12px; font-weight: 600; color: #3A3F4A; margin-right: 4px">Icono según estado</span>
+      <span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; background: #FFFFFF; font-size: 12px; color: #3A3F4A"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B717C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>Listo</span>
+      <span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; background: #FFFFFF; font-size: 12px; color: #3A3F4A"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D92D2D" stroke="#D92D2D" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0" fill="none"></path><path d="M12 18v3"></path></svg>Grabando</span>
+      <span style="display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 8px; background: #FFFFFF; font-size: 12px; color: #3A3F4A"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>Procesando</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4F46E5","options":["#4F46E5","#15171C","#0F766E","#C2410C"]},"$preview":{"width":600,"height":440}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#4F46E5' };
+  }
+}
+</script>
+</body>
+</html>

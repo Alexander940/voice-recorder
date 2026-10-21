@@ -1,58 +1,54 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import * as fx from "./harness/fixtures";
+import { fire, setCommands } from "./test-tauri";
 
-type Handler = (e: { payload: unknown }) => void;
-const handlers: Record<string, Handler> = {};
-let keyStatus = { groq: true, anthropic: true };
+vi.mock("@tauri-apps/api/core", () => import("./test-tauri"));
+vi.mock("@tauri-apps/api/event", () => import("./test-tauri"));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn((cmd: string) =>
-    Promise.resolve(
-      cmd === "get_key_status"
-        ? keyStatus
-        : cmd === "app_version"
-          ? "0.1.0"
-          : cmd === "history_list"
-            ? []
-            : cmd === "modes_list"
-              ? { modes: [], active: "clean" }
-              : cmd === "vocabulary_get"
-                ? { terms: [], replacements: [] }
-                : null,
-    ),
-  ),
-}));
-
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn((name: string, handler: Handler) => {
-    handlers[name] = handler;
-    return Promise.resolve(() => delete handlers[name]);
-  }),
-}));
+const base = {
+  get_key_status: { groq: true, anthropic: true },
+  settings_get: fx.settings,
+  modes_list: fx.modes,
+  history_list: [],
+  vocabulary_get: fx.vocabulary,
+};
 
 describe("App", () => {
-  beforeEach(() => {
-    keyStatus = { groq: true, anthropic: true };
-    for (const k of Object.keys(handlers)) delete handlers[k];
-  });
+  beforeEach(() => setCommands(base));
 
-  it("muestra el título y la versión del backend", async () => {
+  it("abre en Historial con el menú lateral y la tarjeta de estado", async () => {
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Voice Recorder" })).toBeInTheDocument();
-    expect(await screen.findByTestId("version")).toHaveTextContent("v0.1.0");
-  });
-
-  it("abre en Ajustes y navega a Historial con el evento de la bandeja", async () => {
-    render(<App />);
-    expect(screen.getByRole("heading", { name: "Ajustes" })).toBeInTheDocument();
-    await screen.findByTestId("version");
-    act(() => handlers["navigate"]({ payload: "history" }));
     expect(screen.getByRole("heading", { name: "Historial" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Historial" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(await screen.findByText("Modo: Limpio")).toBeInTheDocument();
+    expect(screen.getByText("Listo para dictar")).toBeInTheDocument();
+    expect(screen.getByText("Option+Space")).toBeInTheDocument();
+  });
+
+  it("navega con el menú lateral y con el evento de la bandeja", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Vocabulario" }));
+    expect(await screen.findByRole("heading", { name: "Vocabulario" })).toBeInTheDocument();
+    act(() => fire("navigate", "settings"));
+    expect(await screen.findByRole("heading", { name: "Ajustes" })).toBeInTheDocument();
+  });
+
+  it("la tarjeta de estado sigue a la bandeja", async () => {
+    render(<App />);
+    await screen.findByText("Modo: Limpio");
+    act(() => fire("tray-state", "recording"));
+    expect(screen.getByText("Grabando…")).toBeInTheDocument();
+    act(() => fire("tray-state", "processing"));
+    expect(screen.getByText("Procesando…")).toBeInTheDocument();
   });
 
   it("sin key de Groq abre el onboarding", async () => {
-    keyStatus = { groq: false, anthropic: false };
+    setCommands({ ...base, get_key_status: { groq: false, anthropic: false } });
     render(<App />);
     expect(
       await screen.findByRole("heading", { name: "Bienvenido a Voice Recorder" }),

@@ -1,9 +1,6 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import Modes from "./Modes";
-import Updates from "./Updates";
-import Vocabulary from "./Vocabulary";
-import { KeyStep, type KeyStatus, type Provider } from "./Onboarding";
+import { isMac } from "./platform";
 
 export interface AppSettings {
   version: number;
@@ -20,7 +17,7 @@ export interface AppSettings {
 
 const MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"];
 const LANGUAGES: [string, string][] = [
-  ["", "Detección automática"],
+  ["", "Detectar automáticamente"],
   ["es", "Español"],
   ["en", "Inglés"],
   ["pt", "Portugués"],
@@ -28,94 +25,199 @@ const LANGUAGES: [string, string][] = [
   ["de", "Alemán"],
   ["it", "Italiano"],
 ];
-const PROVIDERS: [Provider, string, string][] = [
-  ["groq", "Groq", "gsk_"],
-  ["anthropic", "Anthropic", "sk-ant-"],
-];
 
-export default function Settings() {
+const MODIFIER_KEYS = ["Control", "Alt", "Shift", "Meta"];
+
+/** Pulsación de teclado → atajo con el formato del backend ("Option+Space", "Ctrl+Alt+K"). */
+export function shortcutFromEvent(
+  e: Pick<KeyboardEvent, "key" | "code" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">,
+  mac = isMac(),
+): string | null {
+  if (MODIFIER_KEYS.includes(e.key)) return null;
+  const mods: string[] = [];
+  if (mac) {
+    if (e.metaKey) mods.push("Cmd");
+    if (e.ctrlKey) mods.push("Ctrl");
+    if (e.altKey) mods.push("Option");
+  } else {
+    if (e.ctrlKey) mods.push("Ctrl");
+    if (e.altKey) mods.push("Alt");
+    if (e.metaKey) mods.push("Super");
+  }
+  if (e.shiftKey) mods.push("Shift");
+  if (mods.length === 0) return null;
+  const key = e.code.startsWith("Key")
+    ? e.code.slice(3)
+    : e.code.startsWith("Digit")
+      ? e.code.slice(5)
+      : e.code;
+  return [...mods, key].join("+");
+}
+
+function Switch({
+  name,
+  desc,
+  checked,
+  onChange,
+}: {
+  name: string;
+  desc?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="setting">
+      {desc ? (
+        <span className="setting-text">
+          <span className="setting-name">{name}</span>
+          <span className="setting-desc">{desc}</span>
+        </span>
+      ) : (
+        <span className="setting-name">{name}</span>
+      )}
+      <input
+        type="checkbox"
+        role="switch"
+        className="switch-input"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span aria-hidden="true" className="switch">
+        <span className="switch-knob" />
+      </span>
+    </label>
+  );
+}
+
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby={id} className="settings-section">
+      <h2 id={id} className="kicker">
+        {title}
+      </h2>
+      <div className="card">{children}</div>
+    </section>
+  );
+}
+
+export default function Settings({ onSaved }: { onSaved?: (s: AppSettings) => void }) {
+  const [saved, setSaved] = useState<AppSettings | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [devices, setDevices] = useState<string[]>([]);
-  const [keys, setKeys] = useState<KeyStatus | null>(null);
-  const [editingKey, setEditingKey] = useState<Provider | null>(null);
+  const [capturing, setCapturing] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
-    invoke<AppSettings>("settings_get").then(setSettings);
+    invoke<AppSettings>("settings_get").then((s) => {
+      setSaved(s);
+      setSettings(s);
+    });
     invoke<string[]>("list_input_devices")
-      .then(setDevices)
+      .then((d) => setDevices(d ?? []))
       .catch(() => setDevices([]));
-    invoke<KeyStatus>("get_key_status").then(setKeys);
   }, []);
 
-  if (!settings) return <p>Cargando ajustes…</p>;
+  if (!settings || !saved) return <main className="page">Cargando ajustes…</main>;
+
+  const dirty = JSON.stringify(settings) !== JSON.stringify(saved);
 
   // Actualiza una sección sin tocar las demás.
   function set<K extends keyof AppSettings>(section: K, patch: Partial<AppSettings[K]>) {
+    setStatus(null);
     setSettings((s) => (s ? { ...s, [section]: { ...(s[section] as object), ...patch } } : s));
   }
 
   async function save() {
     try {
-      setSettings(await invoke<AppSettings>("settings_update", { settings }));
+      const next = await invoke<AppSettings>("settings_update", { settings });
+      setSaved(next);
+      setSettings(next);
+      onSaved?.(next);
       setStatus({ ok: true, text: "Ajustes guardados" });
     } catch (e) {
       setStatus({ ok: false, text: String(e) });
     }
   }
 
-  async function deleteKey(provider: Provider) {
-    setKeys(await invoke<KeyStatus>("delete_api_key", { provider }));
+  function onCaptureKey(e: KeyboardEvent<HTMLButtonElement>) {
+    if (!capturing) return;
+    e.preventDefault();
+    if (e.key === "Escape") {
+      setCapturing(false);
+      return;
+    }
+    const shortcut = shortcutFromEvent(e);
+    if (shortcut) {
+      set("hotkey", { shortcut });
+      setCapturing(false);
+    }
   }
 
+  const keys = settings.hotkey.shortcut.split("+");
+
   return (
-    <div>
-      <section aria-labelledby="s-general">
-        <h3 id="s-general">General</h3>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.general.autostart}
-            onChange={(e) => set("general", { autostart: e.target.checked })}
-          />
-          Iniciar con el sistema
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.feedback.sounds}
-            onChange={(e) => set("feedback", { sounds: e.target.checked })}
-          />
-          Sonidos al empezar, terminar y en errores
-        </label>
-      </section>
+    <main className="page" style={{ gap: 22 }}>
+      <h1 className="page-title">Ajustes</h1>
 
-      <section aria-labelledby="s-hotkey">
-        <h3 id="s-hotkey">Atajos</h3>
-        <label>
-          Atajo de dictado
-          <input
-            value={settings.hotkey.shortcut}
-            onChange={(e) => set("hotkey", { shortcut: e.target.value })}
-          />
-        </label>
-        <label>
-          Modo del atajo
-          <select
-            value={settings.hotkey.mode}
-            onChange={(e) => set("hotkey", { mode: e.target.value as "hold" | "toggle" })}
-          >
-            <option value="toggle">Pulsar para empezar y terminar</option>
-            <option value="hold">Mantener pulsado</option>
-          </select>
-        </label>
-      </section>
+      <Section id="s-hotkey" title="Atajo">
+        <div className="setting">
+          <div className="setting-text">
+            <span className="setting-name">Atajo de dictado</span>
+            <span className="setting-desc">Funciona en cualquier aplicación. Esc cancela.</span>
+          </div>
+          <div className="shortcut">
+            {capturing ? (
+              <span className="capturing">Pulsa la combinación…</span>
+            ) : (
+              keys.map((k, i) => (
+                <Fragment key={i}>
+                  {i > 0 && <span className="plus">+</span>}
+                  <span className="kbd">{k}</span>
+                </Fragment>
+              ))
+            )}
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setCapturing(!capturing)}
+              onKeyDown={onCaptureKey}
+              onBlur={() => setCapturing(false)}
+            >
+              {capturing ? "Cancelar" : "Cambiar"}
+            </button>
+          </div>
+        </div>
+        <fieldset className="setting">
+          <legend>Modo del atajo</legend>
+          <div className="segmented">
+            {(
+              [
+                ["toggle", "Pulsar para empezar y terminar"],
+                ["hold", "Mantener pulsado"],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className={settings.hotkey.mode === value ? "segment selected" : "segment"}
+              >
+                <input
+                  type="radio"
+                  name="hotkey-mode"
+                  checked={settings.hotkey.mode === value}
+                  onChange={() => set("hotkey", { mode: value })}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </Section>
 
-      <section aria-labelledby="s-audio">
-        <h3 id="s-audio">Audio</h3>
-        <label>
+      <Section id="s-audio" title="Audio y transcripción">
+        <label className="setting compact labelled">
           Micrófono
           <select
+            className="select"
             value={settings.audio.device ?? ""}
             onChange={(e) => set("audio", { device: e.target.value || null })}
           >
@@ -127,23 +229,29 @@ export default function Settings() {
             ))}
           </select>
         </label>
-        <label>
-          Duración máxima (minutos)
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={Math.round(settings.audio.max_duration_secs / 60)}
-            onChange={(e) => set("audio", { max_duration_secs: Number(e.target.value) * 60 })}
-          />
+        <label className="setting compact labelled">
+          <span className="setting-text">
+            Duración máxima
+            <span className="setting-desc">
+              La grabación se corta y se transcribe al llegar al límite.
+            </span>
+          </span>
+          <span className="unit-input">
+            <input
+              type="number"
+              className="number"
+              min={1}
+              max={30}
+              value={Math.round(settings.audio.max_duration_secs / 60)}
+              onChange={(e) => set("audio", { max_duration_secs: Number(e.target.value) * 60 })}
+            />
+            min
+          </span>
         </label>
-      </section>
-
-      <section aria-labelledby="s-stt">
-        <h3 id="s-stt">Transcripción</h3>
-        <label>
-          Modelo
+        <label className="setting compact labelled">
+          Modelo de Whisper
           <select
+            className="select mono"
             value={settings.transcription.model}
             onChange={(e) => set("transcription", { model: e.target.value })}
           >
@@ -152,9 +260,10 @@ export default function Settings() {
             ))}
           </select>
         </label>
-        <label>
+        <label className="setting compact labelled">
           Idioma
           <select
+            className="select"
             value={settings.transcription.language ?? ""}
             onChange={(e) => set("transcription", { language: e.target.value || null })}
           >
@@ -165,84 +274,93 @@ export default function Settings() {
             ))}
           </select>
         </label>
-      </section>
+      </Section>
 
-      <section aria-labelledby="s-ai">
-        <h3 id="s-ai">IA</h3>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.ai.cleanup}
-            onChange={(e) => set("ai", { cleanup: e.target.checked })}
-          />
-          Limpiar el texto con Claude
+      <Section id="s-ai" title="Texto y salida">
+        <Switch
+          name="Limpiar el texto con Claude"
+          desc="Quita muletillas y aplica el modo activo. Si falla, se pega el texto sin limpiar."
+          checked={settings.ai.cleanup}
+          onChange={(v) => set("ai", { cleanup: v })}
+        />
+        <Switch
+          name="Solo copiar al portapapeles"
+          desc="No pega automáticamente; tú decides dónde."
+          checked={settings.output.copy_only}
+          onChange={(v) => set("output", { copy_only: v })}
+        />
+        <Switch
+          name="Sonidos"
+          desc="Al empezar, al terminar y en errores."
+          checked={settings.feedback.sounds}
+          onChange={(v) => set("feedback", { sounds: v })}
+        />
+      </Section>
+
+      <Section id="s-general" title="General y privacidad">
+        <Switch
+          name="Iniciar con el sistema"
+          checked={settings.general.autostart}
+          onChange={(v) => set("general", { autostart: v })}
+        />
+        <Switch
+          name="Guardar historial de dictados"
+          checked={settings.privacy.enabled}
+          onChange={(v) => set("privacy", { enabled: v })}
+        />
+        <label className="setting compact labelled">
+          <span className="setting-text">
+            Conservar el historial
+            <span className="setting-desc">0 = para siempre. Solo se guarda en este equipo.</span>
+          </span>
+          <span className="unit-input">
+            <input
+              type="number"
+              className="number"
+              min={0}
+              value={settings.privacy.retention_days}
+              disabled={!settings.privacy.enabled}
+              onChange={(e) => set("privacy", { retention_days: Number(e.target.value) })}
+            />
+            días
+          </span>
         </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.output.copy_only}
-            onChange={(e) => set("output", { copy_only: e.target.checked })}
-          />
-          Solo copiar al portapapeles (no pegar)
-        </label>
-        <Modes />
-        <Vocabulary />
-      </section>
+      </Section>
 
-      <section aria-labelledby="s-accounts">
-        <h3 id="s-accounts">Cuentas</h3>
-        <ul aria-label="API keys">
-          {PROVIDERS.map(([p, name, prefix]) => (
-            <li key={p}>
-              {name}: {keys?.[p] ? "configurada" : "sin configurar"}
-              <button onClick={() => setEditingKey(p)}>{keys?.[p] ? "Cambiar" : "Añadir"}</button>
-              {keys?.[p] && <button onClick={() => deleteKey(p)}>Borrar</button>}
-              {editingKey === p && (
-                <KeyStep
-                  provider={p}
-                  title={`API key de ${name}`}
-                  prefix={prefix}
-                  help="Se guarda en el almacén seguro del sistema."
-                  onSaved={(s) => {
-                    setKeys(s);
-                    setEditingKey(null);
-                  }}
-                />
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section aria-labelledby="s-privacy">
-        <h3 id="s-privacy">Privacidad</h3>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.privacy.enabled}
-            onChange={(e) => set("privacy", { enabled: e.target.checked })}
-          />
-          Guardar historial de dictados
-        </label>
-        <label>
-          Conservar (días, 0 = siempre)
-          <input
-            type="number"
-            min={0}
-            value={settings.privacy.retention_days}
-            disabled={!settings.privacy.enabled}
-            onChange={(e) => set("privacy", { retention_days: Number(e.target.value) })}
-          />
-        </label>
-      </section>
-
-      <Updates
-        enabled={settings.updates.enabled}
-        onToggle={(enabled) => set("updates", { enabled })}
-      />
-
-      <button onClick={save}>Guardar ajustes</button>
-      {status && <p role={status.ok ? "status" : "alert"}>{status.text}</p>}
-    </div>
+      <div className="grow" />
+      <div className="save-bar ruled">
+        {dirty ? (
+          <span className="save-status">Hay cambios sin guardar</span>
+        ) : (
+          status && (
+            <span
+              role={status.ok ? "status" : "alert"}
+              className={status.ok ? "save-status ok-text" : "save-status error-text"}
+            >
+              {status.text}
+            </span>
+          )
+        )}
+        {dirty && status && !status.ok && (
+          <span role="alert" className="save-status error-text">
+            {status.text}
+          </span>
+        )}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={!dirty}
+          onClick={() => {
+            setSettings(saved);
+            setStatus(null);
+          }}
+        >
+          Descartar
+        </button>
+        <button type="button" className="btn btn-primary" disabled={!dirty} onClick={save}>
+          Guardar ajustes
+        </button>
+      </div>
+    </main>
   );
 }
