@@ -145,3 +145,19 @@ Interrumpir al agente, o crear `docs/loops-history/DISABLED`, que se comprueba a
   - App del paso 0, con el oráculo enmendado, en un worktree: 0/15, con los mismos valores que la calibración original.
 - oracle_sha256 (original, sustituido por la enmienda 1): 5fdc4723…c38c
 - oracle_sha256: `b7aad5c42a9bf97a8f1f048260f6010adc109493b94754063e3b969a79287208`
+
+**Resultado:** ✅ éxito en 5 iteraciones del oráculo, con la enmienda 1 (2026-10-21).
+
+| Ítem | Veredicto | Evidencia |
+|---|---|---|
+| Iteración 1 | fail | 7/15. El `TITLEBAR` de los mockups medía 37 px; inputs con el color del sistema; estado "Guardado" |
+| Iteraciones 2–4 | fail | 10/10 pantallas de ventana pasan; el overlay falla solo por el medio píxel del lienzo; se escala la enmienda 1 |
+| Enmienda 1 | approved | Alinear al píxel las unidades del mockup (desplazamiento de layout); recalibración: `--self` 15/15 y app del paso 0 0/15 |
+| Iteración 5 | pass | 15/15 (0,00–0,31 %, 0 textos mal, axe 0); validación común completa |
+| Revisión humana | ok | El usuario revisó el informe visual (https://claude.ai/artifact/PDFxTzqpneBn3X9CwPDd6B) y la checklist en Mac |
+| Entrega | merged | PR #34 → `ee15e50`, #33 cerrada (estado verificado antes de registrar) |
+
+**Riesgos aceptados:**
+- El oráculo compara en Chromium; la fidelidad en WKWebView y WebView2 se verificó a mano en Mac.
+- La métrica de píxeles sola discrimina poco; el criterio de textos y la revisión humana lo compensan.
+
