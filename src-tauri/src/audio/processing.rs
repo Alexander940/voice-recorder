@@ -96,13 +96,34 @@ pub struct PushOutcome {
     pub limit_reached: bool,
 }
 
-/// Acumula audio entrelazado en su formato nativo hasta terminar.
+/// Trozo de audio mono a la frecuencia nativa, listo para codificar fuera del
+/// hilo de audio (el remuestreo de 10 min no debe bloquear la captura).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Segment {
+    pub samples: Vec<f32>,
+    pub sample_rate: u32,
+}
+
+impl Segment {
+    /// WAV de 16 kHz mono.
+    pub fn encode(&self) -> Result<Vec<u8>, AudioError> {
+        encode_wav(&resample(&self.samples, self.sample_rate, TARGET_RATE))
+    }
+}
+
+/// Acumula audio en mono a su frecuencia nativa. En grabaciones largas se van
+/// sacando trozos (`take_chunk`) y solo se conserva lo que aún no se entregó.
 #[derive(Debug)]
 pub struct Recording {
     sample_rate: u32,
     channels: u16,
     max_frames: usize,
+    /// Audio mono desde la trama absoluta `dropped`.
     samples: Vec<f32>,
+    dropped: usize,
+    /// Trama absoluta donde terminó el último trozo entregado.
+    chunk_end: Option<usize>,
+    overlap_frames: usize,
 }
 
 impl Recording {
@@ -112,35 +133,81 @@ impl Recording {
             channels: channels.max(1),
             max_frames: (max.as_secs_f64() * sample_rate as f64) as usize,
             samples: Vec::new(),
+            dropped: 0,
+            chunk_end: None,
+            overlap_frames: 0,
         }
     }
 
     fn frames(&self) -> usize {
-        self.samples.len() / self.channels as usize
+        self.dropped + self.samples.len()
     }
 
+    fn to_frames(&self, d: Duration) -> usize {
+        (d.as_secs_f64() * self.sample_rate as f64) as usize
+    }
+
+    /// Duración total grabada, incluidos los trozos ya entregados.
     pub fn duration(&self) -> Duration {
         Duration::from_secs_f64(self.frames() as f64 / self.sample_rate as f64)
+    }
+
+    /// ¿Se ha entregado ya algún trozo? (grabación larga)
+    pub fn is_chunked(&self) -> bool {
+        self.chunk_end.is_some()
     }
 
     pub fn push(&mut self, interleaved: &[f32]) -> PushOutcome {
         let room = self.max_frames.saturating_sub(self.frames()) * self.channels as usize;
         let take = interleaved.len().min(room);
-        self.samples.extend_from_slice(&interleaved[..take]);
+        self.samples
+            .extend(to_mono(&interleaved[..take], self.channels));
         PushOutcome {
             rms: rms(interleaved),
             limit_reached: self.frames() >= self.max_frames,
         }
     }
 
+    /// Si desde el último trozo hay al menos `len` de audio, devuelve el siguiente
+    /// trozo (empieza `overlap` antes del final del anterior) y libera la memoria
+    /// del audio que ya no hará falta.
+    pub fn take_chunk(&mut self, len: Duration, overlap: Duration) -> Option<Segment> {
+        let start = self.chunk_end.unwrap_or(0);
+        let end = start + self.to_frames(len);
+        if self.frames() < end {
+            return None;
+        }
+        self.overlap_frames = self.to_frames(overlap);
+        // El búfer empieza en `dropped`, que es el inicio del trozo (con solape).
+        let end_rel = end - self.dropped;
+        let keep_rel = end.saturating_sub(self.overlap_frames).max(self.dropped) - self.dropped;
+        let tail = self.samples.split_off(keep_rel);
+        let mut chunk = std::mem::replace(&mut self.samples, tail);
+        chunk.extend_from_slice(&self.samples[..end_rel - keep_rel]);
+        self.dropped += keep_rel;
+        self.chunk_end = Some(end);
+        Some(Segment {
+            samples: chunk,
+            sample_rate: self.sample_rate,
+        })
+    }
+
+    /// El audio que queda: toda la grabación, o lo grabado desde el último trozo
+    /// (con su solape). `None` si es demasiado corto.
+    pub fn finish_segment(self) -> Option<Segment> {
+        let new_frames = self.frames() - self.chunk_end.unwrap_or(0);
+        if Duration::from_secs_f64(new_frames as f64 / self.sample_rate as f64) < MIN_DURATION {
+            return None;
+        }
+        Some(Segment {
+            samples: self.samples,
+            sample_rate: self.sample_rate,
+        })
+    }
+
     /// WAV de 16 kHz mono, o `None` si la grabación es demasiado corta.
     pub fn finish(self) -> Result<Option<Vec<u8>>, AudioError> {
-        if self.duration() < MIN_DURATION {
-            return Ok(None);
-        }
-        let mono = to_mono(&self.samples, self.channels);
-        let resampled = resample(&mono, self.sample_rate, TARGET_RATE);
-        encode_wav(&resampled).map(Some)
+        self.finish_segment().map(|s| s.encode()).transpose()
     }
 }
 
@@ -211,6 +278,68 @@ mod tests {
         let second = r.push(&sine(16_000, 2, 0.6, 440.0, 0.5));
         assert!(second.limit_reached);
         assert_eq!(r.duration(), Duration::from_secs(1));
+    }
+
+    fn secs(wav: &[u8]) -> f64 {
+        let r = hound::WavReader::new(std::io::Cursor::new(wav)).unwrap();
+        r.duration() as f64 / TARGET_RATE as f64
+    }
+
+    #[test]
+    fn chunks_overlap_and_cover_the_whole_recording() {
+        // 25 s a 48 kHz estéreo, trozos de 10 s con 1 s de solape.
+        let mut r = Recording::new(48_000, 2, Duration::from_secs(60));
+        let len = Duration::from_secs(10);
+        let overlap = Duration::from_secs(1);
+        r.push(&sine(48_000, 2, 9.0, 440.0, 0.5));
+        assert!(r.take_chunk(len, overlap).is_none(), "aún no hay 10 s");
+        r.push(&sine(48_000, 2, 16.0, 440.0, 0.5));
+        let a = r.take_chunk(len, overlap).unwrap();
+        let b = r.take_chunk(len, overlap).unwrap();
+        assert!(r.take_chunk(len, overlap).is_none());
+        assert!(r.is_chunked());
+        assert_eq!(r.duration(), Duration::from_secs(25));
+        // Primero 0–10 s; luego 9–20 s (1 s de solape); al final 19–25 s.
+        assert!((secs(&a.encode().unwrap()) - 10.0).abs() < 0.01);
+        assert!((secs(&b.encode().unwrap()) - 11.0).abs() < 0.01);
+        let last = r.finish().unwrap().unwrap();
+        assert!((secs(&last) - 6.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn taking_chunks_releases_memory() {
+        let mut r = Recording::new(16_000, 1, Duration::from_secs(600));
+        r.push(&sine(16_000, 1, 30.0, 440.0, 0.5));
+        r.take_chunk(Duration::from_secs(10), Duration::from_secs(1));
+        r.take_chunk(Duration::from_secs(10), Duration::from_secs(1));
+        // Quedan 10 s nuevos más 1 s de solape, no los 30 s.
+        assert_eq!(r.samples.len(), 11 * 16_000);
+    }
+
+    #[test]
+    fn tiny_remainder_after_last_chunk_is_skipped() {
+        let mut r = Recording::new(16_000, 1, Duration::from_secs(60));
+        r.push(&sine(16_000, 1, 10.1, 440.0, 0.5));
+        r.take_chunk(Duration::from_secs(10), Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(r.finish().unwrap(), None);
+    }
+
+    #[test]
+    fn chunked_audio_is_continuous() {
+        // Una rampa: el solape del trozo 2 repite exactamente el final del 1.
+        let ramp: Vec<f32> = (0..30_000).map(|i| i as f32 / 30_000.0).collect();
+        let mut r = Recording::new(1_000, 1, Duration::from_secs(60));
+        r.push(&ramp);
+        let a = r
+            .take_chunk(Duration::from_secs(10), Duration::from_secs(2))
+            .unwrap();
+        let b = r
+            .take_chunk(Duration::from_secs(10), Duration::from_secs(2))
+            .unwrap();
+        assert_eq!(a.samples, ramp[..10_000]);
+        assert_eq!(b.samples, ramp[8_000..20_000]);
+        assert_eq!(r.finish_segment().unwrap().samples, ramp[18_000..]);
     }
 
     #[test]

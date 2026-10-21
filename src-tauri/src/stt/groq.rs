@@ -18,6 +18,28 @@ pub struct GroqTranscriber {
     base_url: String,
     api_key: String,
     client: Client,
+    timeout: Duration,
+}
+
+/// Subida mínima supuesta (≈ 0,8 Mbit/s): un trozo de 19 MB tiene unos 3 min.
+const UPLOAD_BYTES_PER_SEC: u64 = 100_000;
+
+/// Tiempo máximo de una petición: base más lo que tarda en subir el audio.
+pub fn request_timeout(base: Duration, wav_len: usize) -> Duration {
+    base + Duration::from_secs(wav_len as u64 / UPLOAD_BYTES_PER_SEC)
+}
+
+/// Segundos de `Retry-After` (Groq usa segundos, no fechas).
+fn retry_after(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+    headers
+        .get(reqwest::header::RETRY_AFTER)?
+        .to_str()
+        .ok()?
+        .trim()
+        .parse::<f64>()
+        .ok()
+        .filter(|s| s.is_finite() && *s >= 0.0)
+        .map(Duration::from_secs_f64)
 }
 
 // La key nunca debe aparecer en logs ni en mensajes de depuración.
@@ -60,14 +82,12 @@ impl GroqTranscriber {
         api_key: impl Into<String>,
         timeout: Duration,
     ) -> Self {
-        let client = Client::builder()
-            .timeout(timeout)
-            .build()
-            .expect("cliente HTTP");
+        let client = Client::builder().build().expect("cliente HTTP");
         Self {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             api_key: api_key.into(),
             client,
+            timeout,
         }
     }
 
@@ -95,6 +115,7 @@ impl GroqTranscriber {
             .client
             .post(format!("{}/audio/transcriptions", self.base_url))
             .bearer_auth(&self.api_key)
+            .timeout(request_timeout(self.timeout, wav.len()))
             .multipart(Self::form(wav, options))
             .send();
         let response = match response {
@@ -112,7 +133,9 @@ impl GroqTranscriber {
         }
         match status {
             StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => Attempt::Done(Err(SttError::Auth)),
-            StatusCode::TOO_MANY_REQUESTS => Attempt::Done(Err(SttError::RateLimited)),
+            StatusCode::TOO_MANY_REQUESTS => {
+                Attempt::Done(Err(SttError::RateLimited(retry_after(response.headers()))))
+            }
             s if s.is_server_error() => Attempt::Retry(SttError::Server(s.as_u16())),
             s => {
                 let message = response
@@ -312,13 +335,36 @@ mod tests {
         let m = server
             .mock("POST", "/audio/transcriptions")
             .with_status(429)
+            .with_header("retry-after", "12")
             .expect(1)
             .create();
         assert_eq!(
             client(&server).transcribe(WAV, &es()).unwrap_err(),
-            SttError::RateLimited
+            SttError::RateLimited(Some(Duration::from_secs(12)))
         );
         m.assert();
+    }
+
+    #[test]
+    fn rate_limit_without_hint_has_no_wait() {
+        let mut server = mockito::Server::new();
+        server
+            .mock("POST", "/audio/transcriptions")
+            .with_status(429)
+            .create();
+        assert_eq!(
+            client(&server).transcribe(WAV, &es()).unwrap_err(),
+            SttError::RateLimited(None)
+        );
+    }
+
+    #[test]
+    fn timeout_grows_with_the_audio_size() {
+        let base = Duration::from_secs(30);
+        assert_eq!(request_timeout(base, 0), base);
+        // Un trozo de 10 min (≈ 19 MB) tiene unos 3 minutos más para subir.
+        let chunk = request_timeout(base, 19_360_000);
+        assert!(chunk >= Duration::from_secs(30 + 190), "{chunk:?}");
     }
 
     #[test]

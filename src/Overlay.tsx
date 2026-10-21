@@ -22,9 +22,11 @@ const PADDING = 16;
 
 export function formatElapsed(ms: number): string {
   const total = Math.floor(ms / 1000);
-  const m = Math.floor(total / 60);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  const ss = s.toString().padStart(2, "0");
+  return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
 /** Forma de onda de los últimos niveles; sin datos todavía, un punto. */
@@ -65,6 +67,8 @@ export default function Overlay({ initial = null }: { initial?: OverlayState | n
   const [state, setState] = useState<OverlayState | null>(initial);
   const [history, setHistory] = useState<number[]>([]);
   const [elapsed, setElapsed] = useState(0);
+  // Trozos de un dictado largo ya transcritos mientras se graba.
+  const [chunks, setChunks] = useState(0);
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,8 +78,10 @@ export default function Overlay({ initial = null }: { initial?: OverlayState | n
         if (e.payload.kind === "recording") {
           setElapsed(0);
           setHistory([]);
+          setChunks(0);
         }
       }),
+      listen<number>("dictation-progress", (e) => setChunks(e.payload)),
       listen<LevelEvent>("audio-level", (e) => {
         setElapsed(e.payload.elapsed_ms);
         setHistory((h) => [...h.slice(-(BARS - 1)), e.payload.level]);
@@ -117,6 +123,11 @@ export default function Overlay({ initial = null }: { initial?: OverlayState | n
               <span className="pill-time" data-testid="elapsed">
                 {formatElapsed(elapsed)}
               </span>
+              {chunks > 0 && (
+                <span className="pill-sub" data-testid="chunks">
+                  {chunks} {chunks === 1 ? "trozo transcrito" : "trozos transcritos"}
+                </span>
+              )}
               <button
                 type="button"
                 className="pill-close"

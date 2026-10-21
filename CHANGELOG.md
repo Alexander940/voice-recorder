@@ -2,6 +2,19 @@
 
 ## v0.1.2
 
+### Dictados largos
+
+- Grabaciones de hasta **3 horas** (antes 30 min). Se configura en Ajustes → Audio y transcripción → Duración máxima.
+- El audio se transcribe **por trozos de 10 minutos mientras grabas**, con 5 s de solape para no cortar palabras. Al parar solo falta el último trozo, así que el texto llega casi al momento aunque hayas grabado horas. Cada trozo ocupa menos de los 25 MB que acepta Groq en el plan gratuito y el uso por hora queda por debajo de su límite.
+- Las partes repetidas en el solape se eliminan al unir los trozos.
+- Si Groq responde «demasiadas peticiones», la app espera lo que indique y reintenta ese trozo. Si un trozo falla del todo, se conservan el texto ya obtenido y el audio pendiente para reintentar desde el Historial.
+- El overlay muestra el tiempo en h:mm:ss y cuántos trozos van transcritos.
+- Ajustes avisa de que más de 2 h seguidas pueden agotar el límite de audio por hora de Groq (plan gratuito).
+
+### Limpieza con Claude
+
+- Ya no hay un tope fijo de 3 s: Claude tiene el tiempo que necesite según el largo del texto, y los dictados largos se limpian trozo a trozo mientras grabas.
+
 ### Correcciones
 
 - «Instalar y reiniciar» no hacía nada en macOS: la confirmación usaba `window.confirm`, que el WebView de macOS no muestra (y devuelve «no»). Ahora la confirmación está dentro de la propia ventana y se muestra el progreso de la descarga. **Quien tenga la v0.1.0 o la v0.1.1 en macOS tiene que instalar esta versión a mano una vez**; las siguientes ya se podrán instalar desde la app.

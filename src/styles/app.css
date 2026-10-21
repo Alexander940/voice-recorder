@@ -1545,3 +1545,7 @@ fieldset.setting legend {
   font-size: 14px;
   color: var(--ink);
 }
+
+.setting-desc.warn-text {
+  color: var(--warn-ink);
+}

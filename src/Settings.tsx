@@ -154,6 +154,7 @@ export default function Settings({ onSaved }: { onSaved?: (s: AppSettings) => vo
   }
 
   const keys = settings.hotkey.shortcut.split("+");
+  const longLimit = settings.audio.max_duration_secs > 120 * 60;
 
   return (
     <main className="page" style={{ gap: 22 }}>
@@ -232,8 +233,10 @@ export default function Settings({ onSaved }: { onSaved?: (s: AppSettings) => vo
         <label className="setting compact labelled">
           <span className="setting-text">
             Duración máxima
-            <span className="setting-desc">
-              La grabación se corta y se transcribe al llegar al límite.
+            <span className={longLimit ? "setting-desc warn-text" : "setting-desc"}>
+              {longLimit
+                ? "Más de 2 h seguidas pueden agotar tu límite de audio por hora de Groq (plan gratuito)."
+                : "La grabación se corta y se transcribe al llegar al límite."}
             </span>
           </span>
           <span className="unit-input">
@@ -241,7 +244,7 @@ export default function Settings({ onSaved }: { onSaved?: (s: AppSettings) => vo
               type="number"
               className="number"
               min={1}
-              max={30}
+              max={180}
               value={Math.round(settings.audio.max_duration_secs / 60)}
               onChange={(e) => set("audio", { max_duration_secs: Number(e.target.value) * 60 })}
             />

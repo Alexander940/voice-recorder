@@ -111,6 +111,9 @@ impl Default for UpdateSettings {
     }
 }
 
+/// Duración máxima permitida de una grabación (3 h).
+pub const MAX_RECORDING_SECS: u64 = 3 * 60 * 60;
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct AppSettings {
@@ -161,8 +164,9 @@ impl AppSettings {
         if self.hotkey.shortcut.trim().is_empty() {
             return Err("El atajo no puede estar vacío".into());
         }
-        if !(10..=1800).contains(&self.audio.max_duration_secs) {
-            return Err("La duración máxima debe estar entre 10 s y 30 min".into());
+        // Hasta 3 h: los dictados largos se transcriben por trozos (longform).
+        if !(10..=MAX_RECORDING_SECS).contains(&self.audio.max_duration_secs) {
+            return Err("La duración máxima debe estar entre 10 s y 3 h".into());
         }
         if !TRANSCRIPTION_MODELS.contains(&self.transcription.model.as_str()) {
             return Err(format!("Modelo desconocido: {}", self.transcription.model));
@@ -310,6 +314,15 @@ mod tests {
             AppSettings::from_json(json!({"version": 1, "audio": "no"})),
             AppSettings::default()
         );
+    }
+
+    #[test]
+    fn recordings_can_last_up_to_three_hours() {
+        let mut s = AppSettings::default();
+        s.audio.max_duration_secs = 3 * 60 * 60;
+        assert!(s.validate().is_ok());
+        s.audio.max_duration_secs += 1;
+        assert!(s.validate().unwrap_err().contains("3 h"));
     }
 
     #[test]

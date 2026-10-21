@@ -42,7 +42,7 @@ impl From<SttError> for AppError {
     fn from(e: SttError) -> Self {
         match e {
             SttError::Auth => AppError::InvalidKey(Provider::Groq),
-            SttError::RateLimited => AppError::RateLimited(Provider::Groq),
+            SttError::RateLimited(_) => AppError::RateLimited(Provider::Groq),
             SttError::Network(_) => AppError::NoNetwork,
             other => AppError::Transcription(other.to_string()),
         }
@@ -245,7 +245,7 @@ mod tests {
             AppError::InvalidKey(Provider::Groq)
         );
         assert_eq!(
-            AppError::from(SttError::RateLimited),
+            AppError::from(SttError::RateLimited(None)),
             AppError::RateLimited(Provider::Groq)
         );
         assert_eq!(
