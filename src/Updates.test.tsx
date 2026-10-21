@@ -1,73 +1,86 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import Updates, { type UpdateStatus } from "./Updates";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import Updates, { lastChecked, noteLines } from "./Updates";
+import * as fx from "./harness/fixtures";
+import { called, fire, setCommands } from "./test-tauri";
 
-const invoke = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invoke(...args),
-}));
+vi.mock("@tauri-apps/api/core", () => import("./test-tauri"));
+vi.mock("@tauri-apps/api/event", () => import("./test-tauri"));
 
-type Handler = (e: { payload: unknown }) => void;
-const handlers: Record<string, Handler> = {};
-vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn((name: string, handler: Handler) => {
-    handlers[name] = handler;
-    return Promise.resolve(() => delete handlers[name]);
-  }),
-}));
+describe("helpers", () => {
+  it("formatea la última comprobación", () => {
+    const now = new Date(2026, 9, 21, 12).getTime();
+    expect(lastChecked(new Date(2026, 9, 21, 9).getTime(), now)).toBe(
+      "Última comprobación: hoy a las 09:00",
+    );
+    expect(lastChecked(new Date(2026, 9, 20, 18, 30).getTime(), now)).toMatch(/ayer a las 18:30/);
+    expect(lastChecked(null, now)).toBe("Todavía no se ha comprobado");
+  });
 
-let status: UpdateStatus;
-
-beforeEach(() => {
-  status = { configured: true, enabled: true, available: null };
-  invoke.mockReset();
-  invoke.mockImplementation((cmd: string) =>
-    Promise.resolve(cmd === "update_status" ? status : null),
-  );
+  it("separa las notas en líneas sin viñetas", () => {
+    expect(noteLines("- Uno\n\n* Dos\nTres")).toEqual(["Uno", "Dos", "Tres"]);
+    expect(noteLines(null)).toEqual([]);
+  });
 });
 
-async function renderUpdates(onToggle = vi.fn()) {
-  render(<Updates enabled onToggle={onToggle} />);
-  await act(async () => {});
-  return onToggle;
-}
-
 describe("Updates", () => {
-  it("el interruptor desactiva las comprobaciones", async () => {
-    const onToggle = await renderUpdates();
-    fireEvent.click(screen.getByLabelText("Buscar actualizaciones al iniciar y una vez al día"));
-    expect(onToggle).toHaveBeenCalledWith(false);
+  beforeEach(() =>
+    setCommands({
+      app_version: "0.1.0",
+      update_status: fx.update,
+      update_check_now: { ...fx.update, available: null },
+      settings_get: fx.settings,
+      settings_update: (a: Record<string, unknown>) => a.settings,
+    }),
+  );
+  afterEach(() => vi.restoreAllMocks());
+
+  it("muestra la versión, la nueva versión y sus notas", async () => {
+    render(<Updates />);
+    expect(await screen.findByText("Voice Recorder 0.1.0")).toBeInTheDocument();
+    expect(screen.getByText("0.2.0")).toBeInTheDocument();
+    expect(screen.getByText("[NOTA DE LA VERSIÓN 1]")).toBeInTheDocument();
+    expect(screen.getByText(/Última comprobación: hoy a las 09:00/)).toBeInTheDocument();
   });
 
-  it("avisa si no está configurado en esta compilación", async () => {
-    status = { configured: false, enabled: true, available: null };
-    await renderUpdates();
-    expect(screen.getByText(/aún no están configuradas/)).toBeInTheDocument();
+  it("nunca instala sin confirmación", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<Updates />);
+    fireEvent.click(await screen.findByRole("button", { name: "Instalar y reiniciar" }));
+    expect(confirm).toHaveBeenCalled();
+    expect(called("update_install")).toHaveLength(0);
   });
 
-  it("muestra la versión disponible cuando llega el evento", async () => {
-    await renderUpdates();
-    expect(screen.queryByRole("status")).toBeNull();
-    act(() => handlers["update-available"]({ payload: { version: "0.2.0", notes: "Mejoras" } }));
-    expect(screen.getByRole("status")).toHaveTextContent("0.2.0");
-    expect(screen.getByRole("status")).toHaveTextContent("Mejoras");
-  });
-
-  it("no instala sin confirmación", async () => {
-    status = { ...status, available: { version: "0.2.0", notes: null } };
-    await renderUpdates();
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    await act(async () => fireEvent.click(screen.getByText("Instalar y reiniciar")));
-    expect(invoke).not.toHaveBeenCalledWith("update_install");
-  });
-
-  it("instala tras confirmar y muestra el error si falla", async () => {
-    status = { ...status, available: { version: "0.2.0", notes: null } };
-    await renderUpdates();
+  it("instala tras confirmar", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    invoke.mockRejectedValueOnce("La firma de la actualización no es válida; no se instalará");
-    await act(async () => fireEvent.click(screen.getByText("Instalar y reiniciar")));
-    expect(invoke).toHaveBeenCalledWith("update_install");
-    expect(screen.getByRole("alert")).toHaveTextContent("firma");
+    render(<Updates />);
+    fireEvent.click(await screen.findByRole("button", { name: "Instalar y reiniciar" }));
+    await vi.waitFor(() => expect(called("update_install")).toHaveLength(1));
+  });
+
+  it("busca ahora y desactiva la comprobación automática", async () => {
+    render(<Updates />);
+    fireEvent.click(await screen.findByRole("button", { name: "Buscar ahora" }));
+    await vi.waitFor(() => expect(screen.queryByText("0.2.0")).toBeNull());
+    fireEvent.click(screen.getByRole("switch", { name: /Buscar actualizaciones/ }));
+    await vi.waitFor(() => expect(called("settings_update")).toHaveLength(1));
+    expect(called("settings_update")[0].args).toMatchObject({
+      settings: { updates: { enabled: false } },
+    });
+  });
+
+  it("avisa por evento de una versión nueva", async () => {
+    setCommands({ app_version: "0.1.0", update_status: { ...fx.update, available: null } });
+    render(<Updates />);
+    await screen.findByText("Voice Recorder 0.1.0");
+    act(() => fire("update-available", { version: "0.3.0", notes: null }));
+    expect(screen.getByText("0.3.0")).toBeInTheDocument();
+  });
+
+  it("sin configurar lo explica y no permite buscar", async () => {
+    setCommands({ app_version: "0.1.0", update_status: { ...fx.update, configured: false } });
+    render(<Updates />);
+    expect(await screen.findByText(/aún no están configuradas/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Buscar ahora" })).toBeDisabled();
   });
 });

@@ -1,63 +1,64 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Vocabulary from "./Vocabulary";
+import Vocabulary, { addTerm } from "./Vocabulary";
+import * as fx from "./harness/fixtures";
+import { called, setCommands } from "./test-tauri";
 
-const invoke = vi.fn();
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (...args: unknown[]) => invoke(...args),
-}));
+vi.mock("@tauri-apps/api/core", () => import("./test-tauri"));
 
-beforeEach(() => {
-  invoke.mockReset();
-  invoke.mockImplementation((cmd: string, args: Record<string, unknown>) => {
-    if (cmd === "vocabulary_get") {
-      return Promise.resolve({
-        terms: ["Kubernetes", "Tauri"],
-        replacements: [{ from: "cubernetes", to: "Kubernetes" }],
-      });
-    }
-    // El backend normaliza: quita líneas vacías.
-    const v = args.vocabulary as { terms: string[]; replacements: unknown[] };
-    return Promise.resolve({ ...v, terms: v.terms.filter((t) => t.trim()) });
+describe("addTerm", () => {
+  it("ignora vacíos y repetidos sin distinguir mayúsculas", () => {
+    expect(addTerm(["Groq"], "  ")).toEqual(["Groq"]);
+    expect(addTerm(["Groq"], "groq")).toEqual(["Groq"]);
+    expect(addTerm(["Groq"], " Tauri ")).toEqual(["Groq", "Tauri"]);
   });
 });
 
 describe("Vocabulary", () => {
-  it("carga términos y reemplazos", async () => {
+  beforeEach(() =>
+    setCommands({
+      vocabulary_get: fx.vocabulary,
+      vocabulary_save: (a: Record<string, unknown>) => a.vocabulary,
+    }),
+  );
+
+  it("muestra los términos como chips y los reemplazos", async () => {
     render(<Vocabulary />);
-    expect(await screen.findByLabelText("Términos (uno por línea)")).toHaveValue(
-      "Kubernetes\nTauri",
-    );
-    expect(screen.getByLabelText("Si oyes 1")).toHaveValue("cubernetes");
-    expect(screen.getByLabelText("Escribe 1")).toHaveValue("Kubernetes");
+    expect(await screen.findByText("Kubernetes")).toBeInTheDocument();
+    expect(screen.getByLabelText("Si oyes 1")).toHaveValue("cloud");
+    expect(screen.getByLabelText("Escribe 2")).toHaveValue("@empresa.com");
   });
 
-  it("guarda términos por línea y reemplazos añadidos", async () => {
+  it("añade con Enter y quita con la ×", async () => {
     render(<Vocabulary />);
-    const textarea = await screen.findByLabelText("Términos (uno por línea)");
-    await act(async () => {});
-    fireEvent.change(textarea, { target: { value: "Rust\n\nAnthropic" } });
-    fireEvent.click(screen.getByText("Añadir reemplazo"));
-    fireEvent.change(screen.getByLabelText("Si oyes 2"), { target: { value: "ban colombia" } });
-    fireEvent.change(screen.getByLabelText("Escribe 2"), { target: { value: "Bancolombia" } });
-    await act(async () => fireEvent.click(screen.getByText("Guardar vocabulario")));
-    expect(invoke).toHaveBeenCalledWith("vocabulary_save", {
+    await screen.findByText("Kubernetes");
+    const input = screen.getByLabelText("Añadir término");
+    fireEvent.change(input, { target: { value: "Vite" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByText("Vite")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Quitar Kubernetes" }));
+    expect(screen.queryByText("Kubernetes")).toBeNull();
+  });
+
+  it("añade y quita reemplazos y guarda todo", async () => {
+    render(<Vocabulary />);
+    await screen.findByLabelText("Si oyes 1");
+    fireEvent.click(screen.getByRole("button", { name: "Quitar reemplazo 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Añadir reemplazo" }));
+    fireEvent.change(screen.getByLabelText("Si oyes 2"), { target: { value: "jason" } });
+    fireEvent.change(screen.getByLabelText("Escribe 2"), { target: { value: "JSON" } });
+    // Un término a medio escribir también se guarda.
+    fireEvent.change(screen.getByLabelText("Añadir término"), { target: { value: "Rust" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar vocabulario" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Guardado");
+    expect(called("vocabulary_save")[0].args).toEqual({
       vocabulary: {
-        terms: ["Rust", "", "Anthropic"],
+        terms: ["Kubernetes", "Anthropic", "Tauri", "Groq", "Rust"],
         replacements: [
-          { from: "cubernetes", to: "Kubernetes" },
-          { from: "ban colombia", to: "Bancolombia" },
+          { from: "arroba empresa", to: "@empresa.com" },
+          { from: "jason", to: "JSON" },
         ],
       },
     });
-    expect(screen.getByRole("status")).toHaveTextContent("Vocabulario guardado");
-    expect(textarea).toHaveValue("Rust\nAnthropic");
-  });
-
-  it("quita un reemplazo", async () => {
-    render(<Vocabulary />);
-    await screen.findByLabelText("Si oyes 1");
-    fireEvent.click(screen.getByText("Quitar"));
-    expect(screen.queryByLabelText("Si oyes 1")).toBeNull();
   });
 });

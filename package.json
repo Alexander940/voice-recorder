@@ -14,7 +14,8 @@
     "test": "vitest run",
     "check:structure": "node scripts/check-structure.mjs",
     "check:artifacts": "node scripts/check-artifacts.mjs",
-    "check:visual": "node scripts/visual-oracle.mjs"
+    "check:visual": "node scripts/visual-oracle.mjs",
+    "check:harness": "node scripts/check-no-harness.mjs"
   },
   "dependencies": {
     "@fontsource/geist": "^5.3.0",

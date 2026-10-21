@@ -1,0 +1,52 @@
+/* Sistema visual de Voice Recorder (HU-16). Único sitio donde se definen colores. */
+:root {
+  --bg: #ffffff;
+  --surface: #f6f7f9;
+  --line: #e6e8ec;
+  --line-strong: #d5d8de;
+  --ink: #15171c;
+  --ink-2: #3a3f4a;
+  --muted: #5b616e;
+  --muted-2: #4b5160;
+  --idle: #8a8f98;
+  --chip: #f1f2f4;
+  --switch-off: #c9cdd4;
+  --hover: rgba(21, 23, 28, 0.04);
+  --segment-shadow: 0 1px 2px rgba(21, 23, 28, 0.12);
+
+  --accent: #4f46e5;
+  --accent-soft: #eef2ff;
+  --accent-tint: #e0e7ff;
+  --accent-line: #c7d2fe;
+  --accent-ink: #3730a3;
+  --accent-deep: #1e1b4b;
+  --accent-done: #a5b4fc;
+  --accent-row: #f8f9ff;
+  --link: #4338ca;
+  --link-hover: #312e81;
+
+  --rec: #d92d2d;
+  --rec-glow: rgba(217, 45, 45, 0.25);
+  --ok: #166534;
+  --ok-soft: #dcfce7;
+  --ok-solid: #16a34a;
+  --danger: #b91c1c;
+  --danger-ink: #991b1b;
+  --danger-soft: #fef2f2;
+  --danger-line: #fecaca;
+  --warn: #c2410c;
+  --warn-ink: #7c2d12;
+  --warn-soft: #fff7ed;
+  --warn-line: #fed7aa;
+  --warn-button: #fdba74;
+
+  --overlay-bg: #1c1c20;
+  --overlay-fg: #f4f4f5;
+  --overlay-chip: #3f3f46;
+  --overlay-button: #2e2e34;
+  --overlay-muted: #a1a1aa;
+  --overlay-shadow: 0 8px 24px rgba(21, 23, 28, 0.22);
+
+  --font: Geist, system-ui, sans-serif;
+  --mono: "Geist Mono", monospace;
+}
