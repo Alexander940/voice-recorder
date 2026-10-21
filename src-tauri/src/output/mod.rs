@@ -32,6 +32,17 @@ pub trait KeySender {
     fn paste(&mut self) -> Result<(), OutputError>;
 }
 
+/// Un teclado que no se pudo abrir (p. ej. macOS sin permiso de Accesibilidad)
+/// se comporta como un pegado fallido: el texto se queda en el portapapeles.
+impl<K: KeySender> KeySender for Result<K, OutputError> {
+    fn paste(&mut self) -> Result<(), OutputError> {
+        match self {
+            Ok(keys) => keys.paste(),
+            Err(e) => Err(e.clone()),
+        }
+    }
+}
+
 pub trait Notifier {
     fn notify(&self, title: &str, body: &str);
 }
@@ -214,6 +225,32 @@ mod tests {
         assert_eq!(
             *log.borrow(),
             ["get", "set:hola", "paste", "notify:No se pudo pegar"]
+        );
+        assert_eq!(p.clipboard.content.as_deref(), Some("hola"));
+    }
+
+    /// macOS sin permiso de Accesibilidad: el teclado ni siquiera se abre.
+    /// El texto tiene que quedar en el portapapeles, nunca perderse.
+    #[test]
+    fn unavailable_keyboard_leaves_text_in_clipboard() {
+        let log: Log = Rc::default();
+        let keys: Result<FakeKeys, OutputError> = Err(OutputError("sin Accesibilidad".into()));
+        let mut p = Paster::new(
+            FakeClipboard {
+                log: log.clone(),
+                content: Some("anterior".into()),
+            },
+            keys,
+            FakeNotifier { log: log.clone() },
+        );
+        p.restore_delay = Duration::ZERO;
+        assert_eq!(
+            p.deliver("hola", OutputMode::Paste),
+            Ok(Delivery::InClipboard)
+        );
+        assert_eq!(
+            *log.borrow(),
+            ["get", "set:hola", "notify:No se pudo pegar"]
         );
         assert_eq!(p.clipboard.content.as_deref(), Some("hola"));
     }

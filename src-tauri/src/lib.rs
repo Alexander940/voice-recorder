@@ -171,6 +171,6 @@ mod tests {
 
     #[test]
     fn app_version_matches_cargo_manifest() {
-        assert_eq!(app_version(), "0.1.0");
+        assert_eq!(app_version(), env!("CARGO_PKG_VERSION"));
     }
 }

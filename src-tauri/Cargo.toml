@@ -1,6 +1,6 @@
 [package]
 name = "voice-recorder"
-version = "0.1.0"
+version = "0.1.1"
 description = "Dictado por voz con Groq Whisper + Claude"
 authors = ["Alexander940"]
 edition = "2024"

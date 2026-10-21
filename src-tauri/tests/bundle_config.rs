@@ -80,3 +80,19 @@ fn updater_has_a_valid_public_key_and_signed_artifacts() {
     let endpoint = c["plugins"]["updater"]["endpoints"][0].as_str().unwrap();
     assert!(endpoint.starts_with("https://github.com/Alexander940/voice-recorder/releases/"));
 }
+
+/// v0.1.1: sin certificado de Apple, el .app sale con firma ad-hoc completa para que
+/// macOS recuerde los permisos de micrófono y Accesibilidad, y con el entitlement de
+/// micrófono que exige el hardened runtime.
+#[test]
+fn macos_bundle_is_ad_hoc_signed_with_microphone_entitlement() {
+    let c = conf();
+    assert_eq!(c["bundle"]["macOS"]["signingIdentity"], "-");
+    assert_eq!(c["bundle"]["macOS"]["entitlements"], "Entitlements.plist");
+    let ent = std::fs::read_to_string("Entitlements.plist").unwrap();
+    let key = ent
+        .find("<key>com.apple.security.device.audio-input</key>")
+        .expect("falta el entitlement de micrófono");
+    let value = ent[key..].split("</key>").nth(1).unwrap().trim_start();
+    assert!(value.starts_with("<true/>"));
+}
