@@ -300,10 +300,25 @@ export function comparePixels(mockBuf, implBuf) {
 
 // ---------- Captura ----------
 
-async function capture(page, unitSelector, clip) {
+async function capture(page, unitSelector, clip, snap = false) {
   if (unitSelector) {
     const el = page.locator(unitSelector).first();
     if ((await el.count()) === 0) return null;
+    if (snap) {
+      // Enmienda 1: en el lienzo del mockup la unidad puede caer en medio píxel; se
+      // alinea a la rejilla como quedaría en su ventana real.
+      await el.evaluate((e) => {
+        const r = e.getBoundingClientRect();
+        const fx = r.x - Math.floor(r.x);
+        const fy = r.y - Math.floor(r.y);
+        // Desplazamiento de layout (no `transform`, que dejaría el texto en medio píxel).
+        if (fx || fy) {
+          e.style.position = "relative";
+          e.style.left = `${-fx}px`;
+          e.style.top = `${-fy}px`;
+        }
+      });
+    }
     const png = await el.screenshot({ animations: "disabled" });
     const texts = await el.evaluate(extractTexts);
     return { png, texts };
@@ -397,13 +412,13 @@ async function main() {
       const [w, h] = screen.size;
       const clip = { x: 0, y: TITLEBAR, width: w, height: h - TITLEBAR };
       const mockPage = await openMock(browser, base, screen);
-      const mock = await capture(mockPage, screen.unit?.mock, clip);
+      const mock = await capture(mockPage, screen.unit?.mock, clip, true);
       let implPage;
       let impl;
       if (self) {
         // Segundo renderizado independiente del mismo mockup: mide el determinismo.
         implPage = await openMock(browser, base, screen);
-        impl = await capture(implPage, screen.unit?.mock, clip);
+        impl = await capture(implPage, screen.unit?.mock, clip, true);
       } else {
         implPage = await openImpl(browser, base, screen);
         impl = await capture(implPage, screen.unit?.impl, {
