@@ -21,3 +21,4 @@ Un inner loop por historia de usuario (diseñado con la skill `agentic-loops`). 
 | 9 | [hu-13-errors-feedback](hu-13-errors-feedback/design.md) | #5, #8, #11 |
 | 10 | [hu-14-installers](hu-14-installers/design.md) | MVP |
 | 11 | [hu-15-auto-update](hu-15-auto-update/design.md) | #14 |
+| 12 | [hu-16-visual-redesign](hu-16-visual-redesign/design.md) | #1–#15 |
