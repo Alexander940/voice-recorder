@@ -91,6 +91,8 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) {
         }
     }
     app.manage(SettingsState(Mutex::new(settings)));
+    // La bandeja se creó con el atajo por defecto: ahora muestra el guardado.
+    let _ = crate::tray::rebuild_menu(app);
 }
 
 #[tauri::command]

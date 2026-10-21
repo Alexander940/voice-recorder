@@ -50,7 +50,27 @@ Se hace antes de escribir cualquier pantalla, en un commit propio.
 - Mockup contra sí mismo: 0 % de diferencia y todas las pantallas en pass.
 - `main` actual contra los mockups: **todas** las pantallas deben dar fail.
 - Si alguna de las dos cosas no se cumple, el oráculo está mal: el loop se para y se escala al usuario con una enmienda. Los umbrales nunca se tocan en silencio.
-- Tras la calibración se registra en `## Outcome` el SHA-256 de `scripts/visual-oracle.mjs`. Desde ese momento el script, los umbrales, `SHA256SUMS`, `tray-spec.json` y `docs/design/deviations.json` son **de solo lectura para el agente**. Cambiarlos requiere una enmienda aprobada por el usuario, y el oráculo comprueba su propio hash al arrancar.
+- Tras la calibración se registra en `## Enmienda 1 (propuesta 2026-10-21): alinear al píxel las unidades del mockup
+> **Status:** DRAFT — pendiente de aprobación del usuario
+
+**Problema detectado en la iteración 1.** En el lienzo del mockup del overlay, los cuatro estados quedan en posiciones de medio píxel (y = 44,5, 161,5, 254,5 y 347,5 px), porque se alinean en una rejilla de 440 px. Al capturar el elemento, Chromium suaviza sus bordes y su contenido medio píxel. En la ventana real del overlay la píldora está en coordenadas enteras, así que el mockup nunca se puede reproducir píxel a píxel. Es un artefacto del lienzo, no del diseño.
+
+**Evidencia:**
+- Implementación tal cual: las 5 capturas del overlay fallan, con entre 6,05 % y 28,81 % de píxeles distintos, 0 textos mal y 0 errores de axe.
+- Implementación desplazada 0,5 px, solo para medir y sin commitear: las 5 pasan, con entre 0,00 % y 0,30 %.
+
+**Cambio propuesto en `scripts/visual-oracle.mjs`:**
+- Antes de capturar una unidad del **mockup**, se desplaza ese elemento con `transform: translate(-fx, -fy)`, donde `fx` y `fy` son la parte fraccionaria de su posición, para que quede alineado al píxel.
+- No cambian la implementación, los umbrales, los mockups ni las pantallas de ventana completa.
+- Después del cambio se repite la calibración: `--self` debe dar 15/15 y `main` 0/15. Luego se fija el nuevo `oracle_sha256`.
+
+**Alternativas descartadas:**
+- Desplazar 0,5 px el overlay real: emborrona la píldora en el producto solo para satisfacer al oráculo.
+- Aceptar el overlay solo con revisión humana: deja 5 capturas sin oráculo automático.
+
+**Otro hallazgo, resuelto sin tocar el oráculo:** la barra de título simulada de los mockups mide 37 px (36 px más 1 px de borde), no 36. La implementación dibuja esa misma línea de 1 px bajo la barra de título nativa, como se ve en el diseño.
+
+## Outcome` el SHA-256 de `scripts/visual-oracle.mjs`. Desde ese momento el script, los umbrales, `SHA256SUMS`, `tray-spec.json` y `docs/design/deviations.json` son **de solo lectura para el agente**. Cambiarlos requiere una enmienda aprobada por el usuario, y el oráculo comprueba su propio hash al arrancar.
 
 ### 5. Desviaciones aceptadas
 Están en `docs/design/deviations.json`, congelado. Contenido inicial:

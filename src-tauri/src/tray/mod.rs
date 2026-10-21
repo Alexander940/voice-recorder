@@ -145,7 +145,11 @@ fn build_item<R: Runtime>(
 
 fn menu<R: Runtime>(app: &AppHandle<R>, state: TrayState) -> tauri::Result<Menu<R>> {
     let modes = app.state::<Modes>().snapshot();
-    let shortcut = app.state::<SettingsState>().get().hotkey.shortcut;
+    // La bandeja se crea antes de cargar los ajustes: hasta entonces, el atajo por defecto.
+    let shortcut = app.try_state::<SettingsState>().map_or_else(
+        || crate::hotkey::default_shortcut().to_string(),
+        |s| s.get().hotkey.shortcut,
+    );
     let built = menu_entries(state, &modes, &shortcut)
         .iter()
         .map(|e| build_item(app, e))
