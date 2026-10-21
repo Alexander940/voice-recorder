@@ -13,7 +13,9 @@ use crate::hotkey::{self, DictationAction};
 use crate::llm::{AnthropicCleaner, CleanupOutcome, TextCleaner, clean_or_raw};
 use crate::logging::Redactions;
 use crate::modes::Modes;
-use crate::output::{EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier};
+use crate::output::{
+    Delivery, EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier,
+};
 use crate::settings::keys::Provider;
 use crate::settings::{AppKeys, SettingsState};
 use crate::sounds::{self, Sound};
@@ -383,11 +385,12 @@ fn transcribe_and_deliver<R: Runtime>(
     });
     let _ = app.emit("transcription", &out.text);
     let clipboard = SystemClipboard::new()?;
-    let keys = EnigoKeys::new()?;
-    let copy_only = settings.output.copy_only;
-    Paster::new(clipboard, keys, TauriNotifier(app.clone())).deliver(
+    // Si el teclado no se puede abrir (macOS sin Accesibilidad), el texto se
+    // queda en el portapapeles en lugar de perderse.
+    let keys = EnigoKeys::new();
+    let delivery = Paster::new(clipboard, keys, TauriNotifier(app.clone())).deliver(
         &out.text,
-        if copy_only {
+        if settings.output.copy_only {
             OutputMode::CopyOnly
         } else {
             OutputMode::Paste
@@ -415,7 +418,7 @@ fn transcribe_and_deliver<R: Runtime>(
     Ok(Some(OverlayState::Pasted {
         words: word_count(&out.text),
         ms: processing_ms,
-        copied: copy_only,
+        copied: delivery == Delivery::InClipboard,
     }))
 }
 

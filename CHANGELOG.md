@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.1
+
+### Correcciones (macOS)
+
+- macOS ya recuerda los permisos de micrófono y Accesibilidad: la app sale con firma ad-hoc completa y el entitlement de micrófono. Antes pedía el micrófono varias veces en cada dictado.
+- Sin permiso de Accesibilidad, el texto dictado se queda en el portapapeles con un aviso que explica cómo activarlo. Antes se perdía (seguía en el Historial).
+- El diálogo de permiso de Accesibilidad se abre como mucho una vez por sesión, no en cada dictado.
+- El overlay dice «Copiado» cuando el texto se queda en el portapapeles en vez de pegarse.
+
 ## v0.1.0 — primera versión
 
 Dictado por voz en cualquier aplicación: pulsas el atajo, hablas, lo vuelves a pulsar y el texto transcrito y pulido aparece donde está el cursor.

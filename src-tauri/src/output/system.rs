@@ -1,6 +1,8 @@
 //! Implementaciones reales de los traits de salida.
 
-use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use enigo::{Direction, Enigo, Key, Keyboard, NewConError, Settings};
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_notification::NotificationExt;
 
@@ -32,9 +34,23 @@ impl Clipboard for SystemClipboard {
 
 pub struct EnigoKeys(Enigo);
 
+/// Lo que se le dice al usuario cuando macOS no deja simular el pegado.
+pub const ACCESSIBILITY_HINT: &str = "Activa Voice Recorder en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad y vuelve a abrir la app";
+
+/// El diálogo de permisos de macOS se abre como mucho una vez por sesión,
+/// no en cada dictado.
+static PERMISSION_PROMPTED: AtomicBool = AtomicBool::new(false);
+
 impl EnigoKeys {
     pub fn new() -> Result<Self, OutputError> {
-        Enigo::new(&Settings::default()).map(Self).map_err(err)
+        let settings = Settings {
+            open_prompt_to_get_permissions: !PERMISSION_PROMPTED.swap(true, Ordering::SeqCst),
+            ..Settings::default()
+        };
+        Enigo::new(&settings).map(Self).map_err(|e| match e {
+            NewConError::NoPermission => OutputError(ACCESSIBILITY_HINT.into()),
+            other => err(other),
+        })
     }
 }
 
