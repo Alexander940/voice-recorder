@@ -100,6 +100,7 @@ jobs:
           # Solo los tags crean (borrador de) release; el ensayo no publica.
           tagName: ${{ github.event_name == 'push' && github.ref_name || '' }}
           releaseName: "Voice Recorder ${{ github.ref_name }}"
+          releaseBody: "Novedades: https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md"
           releaseDraft: true
           includeUpdaterJson: true
 
