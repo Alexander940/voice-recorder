@@ -107,3 +107,12 @@ Interrumpir al agente, o crear `docs/loops-history/DISABLED`, que se comprueba a
 ## Riesgos aceptados
 - Las capturas comparan el renderizado de Chromium, no el WebView real (WKWebView en macOS, WebView2 en Windows). La revisión manual en Mac cubre esa diferencia.
 - El menú nativo de la bandeja se valida por estructura, no por aspecto, porque el sistema operativo decide su estilo.
+
+## Outcome
+**Calibración del oráculo (paso 0, 2026-10-21):**
+- Mockup contra un segundo renderizado de sí mismo: 15/15 pass con 0,00 % de píxeles distintos y 0 textos mal. El renderizado es determinista y las fuentes Geist se cargan en local.
+- App de `main` (antes del rediseño) en el arnés: 0/15 pass.
+  - Pantallas completas: 4,2–6,2 % de píxeles distintos y 92–100 % de los textos mal.
+  - Overlay: faltan los elementos `data-overlay-*`.
+- Observación: la métrica de píxeles por sí sola discrimina poco, porque una pantalla sin estilos queda en ~5 % frente al umbral del 3 %. El criterio de textos (posición, tamaño, peso y color de cada texto) es el que más pesa. No se cambia ningún umbral: lo cubre la revisión humana previa al merge.
+- oracle_sha256: `5fdc4723257d324dab2dbfd181f0fcc0fd549354f913b0229c46597b4791c38c`

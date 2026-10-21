@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Onboarding — Bienvenida</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#4338CA}a:hover{color:#312E81}
+</style>
+</helmet>
+<div style="width: 640px; height: 520px; box-sizing: border-box; background: #FFFFFF; font-family: Geist, system-ui, sans-serif; color: #15171C; display: flex; flex-direction: column">
+  <div style="height: 36px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #E6E8EC; background: #F6F7F9; font-size: 12px; font-weight: 500; color: #5B616E">Voice Recorder</div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 32px 56px; text-align: center">
+    <div style="width: 72px; height: 72px; border-radius: 22px; background: {{accent}}; display: flex; align-items: center; justify-content: center">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.02em">Bienvenido a Voice Recorder</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #5B616E">Dicta en cualquier aplicación. El texto aparece donde está el cursor, limpio y con formato.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; margin-top: 8px">
+      <div style="border: 1px solid #E6E8EC; border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center">
+        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; padding: 4px 8px; border: 1px solid #D5D8DE; border-bottom-width: 2px; border-radius: 6px; background: #F6F7F9">Option+Space</span>
+        <span style="font-size: 13px; color: #3A3F4A">1. Pulsa el atajo</span>
+      </div>
+      <div style="border: 1px solid #E6E8EC; border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center">
+        <svg width="56" height="22" viewBox="0 0 56 22" aria-hidden="true"><g fill="#D92D2D"><rect x="2" y="8" width="4" height="6" rx="2"></rect><rect x="10" y="4" width="4" height="14" rx="2"></rect><rect x="18" y="1" width="4" height="20" rx="2"></rect><rect x="26" y="6" width="4" height="10" rx="2"></rect><rect x="34" y="3" width="4" height="16" rx="2"></rect><rect x="42" y="7" width="4" height="8" rx="2"></rect><rect x="50" y="9" width="4" height="4" rx="2"></rect></g></svg>
+        <span style="font-size: 13px; color: #3A3F4A">2. Habla</span>
+      </div>
+      <div style="border: 1px solid #E6E8EC; border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; align-items: center">
+        <span style="font-family: 'Geist Mono', monospace; font-size: 12px; padding: 4px 8px; border: 1px solid #D5D8DE; border-bottom-width: 2px; border-radius: 6px; background: #F6F7F9">Option+Space</span>
+        <span style="font-size: 13px; color: #3A3F4A">3. Púlsalo otra vez</span>
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #E6E8EC">
+    <div style="display: flex; gap: 6px; align-items: center" aria-label="Paso 1 de 5">
+      <span style="width: 20px; height: 6px; border-radius: 3px; background: {{accent}}"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="width: 6px; height: 6px; border-radius: 3px; background: #D5D8DE"></span>
+      <span style="font-size: 12px; color: #5B616E; margin-left: 8px">Paso 1 de 5</span>
+    </div>
+    <button style="height: 40px; padding: 0 20px; border: 0; border-radius: 10px; background: {{accent}}; color: #FFFFFF; font: 600 14px Geist, system-ui, sans-serif; cursor: pointer">Empezar</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4F46E5","options":["#4F46E5","#15171C","#0F766E","#C2410C"]},"$preview":{"width":640,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#4F46E5' };
+  }
+}
+</script>
+</body>
+</html>

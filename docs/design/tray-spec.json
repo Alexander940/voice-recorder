@@ -1,0 +1,36 @@
+{
+  "source": "docs/design/mockups/Bandeja.dc.html",
+  "context": { "state": "idle", "active_mode": "Limpio", "shortcut": "Option+Space" },
+  "menu": [
+    { "kind": "item", "text": "Listo para dictar", "enabled": false },
+    { "kind": "item", "text": "Modo Limpio · Option+Space", "enabled": false },
+    { "kind": "separator" },
+    { "kind": "item", "text": "Empezar a dictar", "enabled": true },
+    {
+      "kind": "submenu",
+      "text": "Modo",
+      "items": [
+        { "kind": "check", "text": "Literal", "checked": false },
+        { "kind": "check", "text": "Limpio", "checked": true },
+        { "kind": "check", "text": "Email", "checked": false },
+        { "kind": "check", "text": "Mensaje", "checked": false },
+        { "kind": "check", "text": "Prompt técnico", "checked": false },
+        { "kind": "check", "text": "Traducir al inglés", "checked": false }
+      ]
+    },
+    { "kind": "item", "text": "Historial", "enabled": true },
+    { "kind": "item", "text": "Ajustes…", "enabled": true },
+    { "kind": "separator" },
+    { "kind": "item", "text": "Salir de Voice Recorder", "enabled": true }
+  ],
+  "status_text": {
+    "idle": "Listo para dictar",
+    "recording": "Grabando…",
+    "processing": "Procesando…"
+  },
+  "icon_colors": {
+    "idle": "#6B717C",
+    "recording": "#D92D2D",
+    "processing": "#4F46E5"
+  }
+}

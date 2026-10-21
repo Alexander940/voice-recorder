@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ajustes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#4338CA}a:hover{color:#312E81}
+</style>
+</helmet>
+<div style="width: 960px; height: 1040px; box-sizing: border-box; background: #FFFFFF; font-family: Geist, system-ui, sans-serif; color: #15171C; display: flex; flex-direction: column">
+  <div style="height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #E6E8EC; background: #F6F7F9; font-size: 12px; font-weight: 500; color: #5B616E">Voice Recorder</div>
+  <div style="flex-grow: 1; display: flex; min-height: 0">
+    <nav aria-label="Secciones" style="width: 212px; flex-shrink: 0; box-sizing: border-box; background: #F6F7F9; border-right: 1px solid #E6E8EC; padding: 16px 12px; display: flex; flex-direction: column; gap: 2px">
+      <a href="Historial.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #3A3F4A; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Historial</a>
+      <a href="Modos.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #3A3F4A; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>Modos</a>
+      <a href="Vocabulario.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #3A3F4A; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"></path></svg>Vocabulario</a>
+      <div style="height: 1px; background: #E6E8EC; margin: 10px 4px"></div>
+      <a href="Ajustes.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; background: #FFFFFF; box-shadow: 0 0 0 1px #E6E8EC; color: #15171C; font-size: 14px; font-weight: 600; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>Ajustes</a>
+      <a href="Cuentas.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #3A3F4A; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="M11 12l9-9M17 6l3 3"></path></svg>Cuentas</a>
+      <a href="Actualizaciones.dc.html" style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; color: #3A3F4A; font-size: 14px; font-weight: 500; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.5M4 4v4h4"></path><path d="M4 13a8 8 0 0 0 14.9 3.5M20 20v-4h-4"></path></svg>Actualizaciones</a>
+      <div style="flex-grow: 1"></div>
+      <div style="border: 1px solid #E6E8EC; background: #FFFFFF; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><span style="width: 8px; height: 8px; border-radius: 4px; background: #8A8F98"></span>Listo para dictar</div>
+        <span style="align-self: flex-start; font-family: 'Geist Mono', monospace; font-size: 12px; padding: 3px 7px; border: 1px solid #D5D8DE; border-bottom-width: 2px; border-radius: 6px; background: #F6F7F9">Option+Space</span>
+        <span style="font-size: 12px; color: #5B616E">Modo: Limpio</span>
+      </div>
+    </nav>
+    <main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; padding: 24px 32px">
+      <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Ajustes</h1>
+
+      <section aria-labelledby="s-hotkey" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="s-hotkey" style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5B616E">Atajo</h2>
+        <div style="border: 1px solid #E6E8EC; border-radius: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px">
+            <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Atajo de dictado</span><span style="font-size: 13px; color: #5B616E">Funciona en cualquier aplicación. Esc cancela.</span></div>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <span style="font-family: 'Geist Mono', monospace; font-size: 13px; padding: 5px 9px; border: 1px solid #D5D8DE; border-bottom-width: 2px; border-radius: 7px; background: #F6F7F9">Option</span>
+              <span style="font-size: 13px; color: #5B616E">+</span>
+              <span style="font-family: 'Geist Mono', monospace; font-size: 13px; padding: 5px 9px; border: 1px solid #D5D8DE; border-bottom-width: 2px; border-radius: 7px; background: #F6F7F9">Space</span>
+              <button style="height: 34px; margin-left: 6px; padding: 0 12px; border: 1px solid #D5D8DE; border-radius: 8px; background: #FFFFFF; font: 500 13px Geist, system-ui, sans-serif; color: #15171C">Cambiar</button>
+            </div>
+          </div>
+          <fieldset style="margin: 0; border: 0; border-top: 1px solid #E6E8EC; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+            <legend style="float: left; padding: 0; font-size: 14px; font-weight: 600">Modo del atajo</legend>
+            <div style="display: flex; padding: 3px; border-radius: 10px; background: #F1F2F4; gap: 2px">
+              <label style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 8px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(21,23,28,0.12); font-size: 13px; font-weight: 600"><input type="radio" name="hk" checked style="accent-color: {{accent}}; margin: 0">Pulsar para empezar y terminar</label>
+              <label style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #3A3F4A"><input type="radio" name="hk" style="accent-color: {{accent}}; margin: 0">Mantener pulsado</label>
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+      <section aria-labelledby="s-audio" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="s-audio" style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5B616E">Audio y transcripción</h2>
+        <div style="border: 1px solid #E6E8EC; border-radius: 12px">
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; font-size: 14px; font-weight: 600">Micrófono
+            <select style="width: 300px; height: 38px; padding: 0 10px; border: 1px solid #D5D8DE; border-radius: 8px; background: #FFFFFF; font: 400 14px Geist, system-ui, sans-serif; color: #15171C"><option>Predeterminado del sistema</option></select>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid #E6E8EC; font-size: 14px; font-weight: 600"><span style="display: flex; flex-direction: column; gap: 2px">Duración máxima<span style="font-size: 13px; font-weight: 400; color: #5B616E">La grabación se corta y se transcribe al llegar al límite.</span></span>
+            <span style="display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 14px; color: #5B616E"><input type="number" value="5" min="1" max="30" style="width: 72px; height: 38px; box-sizing: border-box; padding: 0 10px; border: 1px solid #D5D8DE; border-radius: 8px; font: 400 14px Geist, system-ui, sans-serif; color: #15171C">min</span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid #E6E8EC; font-size: 14px; font-weight: 600">Modelo de Whisper
+            <select style="width: 300px; height: 38px; padding: 0 10px; border: 1px solid #D5D8DE; border-radius: 8px; background: #FFFFFF; font: 500 13px 'Geist Mono', monospace; color: #15171C"><option>whisper-large-v3-turbo</option><option>whisper-large-v3</option></select>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid #E6E8EC; font-size: 14px; font-weight: 600">Idioma
+            <select style="width: 300px; height: 38px; padding: 0 10px; border: 1px solid #D5D8DE; border-radius: 8px; background: #FFFFFF; font: 400 14px Geist, system-ui, sans-serif; color: #15171C"><option>Detectar automáticamente</option><option>Español</option><option>Inglés</option></select>
+          </label>
+        </div>
+      </section>
+
+      <section aria-labelledby="s-ai" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="s-ai" style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5B616E">Texto y salida</h2>
+        <div style="border: 1px solid #E6E8EC; border-radius: 12px">
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Limpiar el texto con Claude</span><span style="font-size: 13px; color: #5B616E">Quita muletillas y aplica el modo activo. Si falla, se pega el texto sin limpiar.</span></span>
+            <input type="checkbox" role="switch" checked style="position: absolute; opacity: 0; width: 1px; height: 1px">
+            <span aria-hidden="true" style="width: 40px; height: 24px; flex-shrink: 0; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; justify-content: flex-end; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF"></span></span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-top: 1px solid #E6E8EC">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Solo copiar al portapapeles</span><span style="font-size: 13px; color: #5B616E">No pega automáticamente; tú decides dónde.</span></span>
+            <input type="checkbox" role="switch" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+            <span aria-hidden="true" style="width: 40px; height: 24px; flex-shrink: 0; border-radius: 12px; background: #C9CDD4; display: flex; align-items: center; justify-content: flex-start; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF"></span></span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-top: 1px solid #E6E8EC">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Sonidos</span><span style="font-size: 13px; color: #5B616E">Al empezar, al terminar y en errores.</span></span>
+            <input type="checkbox" role="switch" checked style="position: absolute; opacity: 0; width: 1px; height: 1px">
+            <span aria-hidden="true" style="width: 40px; height: 24px; flex-shrink: 0; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; justify-content: flex-end; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF"></span></span>
+          </label>
+        </div>
+      </section>
+
+      <section aria-labelledby="s-general" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="s-general" style="margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #5B616E">General y privacidad</h2>
+        <div style="border: 1px solid #E6E8EC; border-radius: 12px">
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px">
+            <span style="font-size: 14px; font-weight: 600">Iniciar con el sistema</span>
+            <input type="checkbox" role="switch" checked style="position: absolute; opacity: 0; width: 1px; height: 1px">
+            <span aria-hidden="true" style="width: 40px; height: 24px; flex-shrink: 0; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; justify-content: flex-end; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF"></span></span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-top: 1px solid #E6E8EC">
+            <span style="font-size: 14px; font-weight: 600">Guardar historial de dictados</span>
+            <input type="checkbox" role="switch" checked style="position: absolute; opacity: 0; width: 1px; height: 1px">
+            <span aria-hidden="true" style="width: 40px; height: 24px; flex-shrink: 0; border-radius: 12px; background: {{accent}}; display: flex; align-items: center; justify-content: flex-end; padding: 0 3px; box-sizing: border-box"><span style="width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF"></span></span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-top: 1px solid #E6E8EC; font-size: 14px; font-weight: 600"><span style="display: flex; flex-direction: column; gap: 2px">Conservar el historial<span style="font-size: 13px; font-weight: 400; color: #5B616E">0 = para siempre. Solo se guarda en este equipo.</span></span>
+            <span style="display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 14px; color: #5B616E"><input type="number" value="30" min="0" style="width: 72px; height: 38px; box-sizing: border-box; padding: 0 10px; border: 1px solid #D5D8DE; border-radius: 8px; font: 400 14px Geist, system-ui, sans-serif; color: #15171C">días</span>
+          </label>
+        </div>
+      </section>
+
+      <div style="flex-grow: 1"></div>
+      <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid #E6E8EC">
+        <span style="font-size: 13px; color: #5B616E">Hay cambios sin guardar</span>
+        <button style="height: 40px; padding: 0 16px; border: 1px solid #D5D8DE; border-radius: 10px; background: #FFFFFF; font: 500 14px Geist, system-ui, sans-serif; color: #15171C">Descartar</button>
+        <button style="height: 40px; padding: 0 20px; border: 0; border-radius: 10px; background: {{accent}}; color: #FFFFFF; font: 600 14px Geist, system-ui, sans-serif">Guardar ajustes</button>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#4F46E5","options":["#4F46E5","#15171C","#0F766E","#C2410C"]},"$preview":{"width":960,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#4F46E5' };
+  }
+}
+</script>
+</body>
+</html>
