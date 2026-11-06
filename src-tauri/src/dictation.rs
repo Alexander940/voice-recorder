@@ -16,7 +16,7 @@ use crate::logging::Redactions;
 use crate::longform::{self, CHUNK_LEN, CHUNK_OVERLAP, LongText};
 use crate::modes::{Mode, Modes};
 use crate::output::{
-    Delivery, EnigoKeys, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier,
+    Delivery, Notifier, OutputMode, Paster, SystemClipboard, TauriNotifier, platform_keys,
 };
 use crate::settings::keys::Provider;
 use crate::settings::{AppKeys, SettingsState};
@@ -56,6 +56,8 @@ pub enum OverlayState {
         mode: String,
         shortcut: String,
         toggle: bool,
+        /// Atajo que cancela ("Esc", o "Ctrl+Shift+Esc" en Wayland).
+        cancel: String,
     },
     Processing {
         stage: Stage,
@@ -335,6 +337,7 @@ fn start<R: Runtime>(app: &AppHandle<R>) {
                     mode,
                     shortcut: settings.hotkey.shortcut.clone(),
                     toggle: settings.hotkey.mode == hotkey::HotkeyMode::Toggle,
+                    cancel: hotkey::cancel_label(app).into(),
                 },
             );
             sound(app, Sound::Start);
@@ -684,9 +687,9 @@ fn deliver<R: Runtime>(
     });
     let _ = app.emit("transcription", &out.text);
     let clipboard = SystemClipboard::new()?;
-    // Si el teclado no se puede abrir (macOS sin Accesibilidad), el texto se
-    // queda en el portapapeles en lugar de perderse.
-    let keys = EnigoKeys::new();
+    // Si el teclado no se puede abrir (macOS sin Accesibilidad, Wayland sin
+    // permiso del portal), el texto se queda en el portapapeles en lugar de perderse.
+    let keys = platform_keys(app);
     let delivery = Paster::new(clipboard, keys, TauriNotifier(app.clone())).deliver(
         &out.text,
         if p.copy_only {

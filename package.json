@@ -15,7 +15,8 @@
     "check:structure": "node scripts/check-structure.mjs",
     "check:artifacts": "node scripts/check-artifacts.mjs",
     "check:visual": "node scripts/visual-oracle.mjs",
-    "check:harness": "node scripts/check-no-harness.mjs"
+    "check:harness": "node scripts/check-no-harness.mjs",
+    "check:wayland": "bash scripts/check-wayland.sh"
   },
   "dependencies": {
     "@fontsource/geist": "^5.3.0",

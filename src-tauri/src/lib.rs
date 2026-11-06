@@ -8,6 +8,7 @@ pub mod logging;
 pub mod longform;
 pub mod modes;
 pub mod output;
+pub mod platform;
 pub mod settings;
 pub mod sounds;
 pub mod stt;
@@ -101,6 +102,9 @@ pub fn run() {
             app.manage(modes::Modes::open(app.handle()));
             app.manage(vocabulary::VocabularyStore::open(app.handle()));
             tray::build(app.handle())?;
+            // Antes de cualquier portal XDG (issue #38).
+            #[cfg(target_os = "linux")]
+            platform::register_portal_app(&app.config().identifier);
             hotkey::init(app.handle());
             // Después del atajo y el historial: los ajustes los configuran.
             settings::init(app.handle());

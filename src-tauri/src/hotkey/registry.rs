@@ -5,9 +5,14 @@ use std::fmt;
 pub const ESCAPE: &str = "Escape";
 
 /// Atajo secundario para pasar al siguiente modo.
+///
+/// En Linux no empieza por `Ctrl+Alt`: VMware lo usa como tecla de host y se
+/// lo queda antes de que llegue al invitado (issue #38).
 pub const fn mode_shortcut() -> &'static str {
     if cfg!(target_os = "macos") {
         "Ctrl+Option+M"
+    } else if cfg!(target_os = "linux") {
+        "Ctrl+Shift+M"
     } else {
         "Ctrl+Alt+M"
     }
@@ -17,10 +22,20 @@ pub const fn mode_shortcut() -> &'static str {
 pub const fn default_shortcut() -> &'static str {
     if cfg!(target_os = "macos") {
         "Option+Space"
+    } else if cfg!(target_os = "linux") {
+        "Ctrl+Shift+Space"
     } else {
         "Ctrl+Alt+Space"
     }
 }
+
+/// Atajo por defecto de Linux hasta la v0.1.2. Se migra al nuevo al cargar
+/// los ajustes porque VMware lo intercepta.
+pub const LEGACY_LINUX_SHORTCUT: &str = "Ctrl+Alt+Space";
+
+/// En Wayland, el portal no permite registrar `Esc` solo durante la grabación,
+/// así que cancelar tiene su propio atajo fijo.
+pub const WAYLAND_CANCEL_SHORTCUT: &str = "Ctrl+Shift+Escape";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HotkeyError {
@@ -187,7 +202,18 @@ mod tests {
     fn default_shortcut_matches_platform() {
         #[cfg(target_os = "macos")]
         assert_eq!(default_shortcut(), "Option+Space");
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "linux")]
+        assert_eq!(default_shortcut(), "Ctrl+Shift+Space");
+        #[cfg(target_os = "windows")]
         assert_eq!(default_shortcut(), "Ctrl+Alt+Space");
+    }
+
+    /// Issue #38: `Ctrl+Alt` es la tecla de host de VMware.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_shortcuts_avoid_ctrl_alt() {
+        for s in [default_shortcut(), mode_shortcut(), WAYLAND_CANCEL_SHORTCUT] {
+            assert!(!s.starts_with("Ctrl+Alt"), "{s} empieza por Ctrl+Alt");
+        }
     }
 }

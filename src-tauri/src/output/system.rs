@@ -68,6 +68,22 @@ impl KeySender for EnigoKeys {
     }
 }
 
+/// Teclado con el que pegar en esta sesión: el portal `RemoteDesktop` en Linux
+/// Wayland (issue #38) y `enigo` en el resto. El `Err` se entrega al
+/// [`super::Paster`], que deja el texto en el portapapeles y avisa.
+pub fn platform_keys<R: Runtime>(app: &AppHandle<R>) -> Result<Box<dyn KeySender>, OutputError> {
+    #[cfg(target_os = "linux")]
+    if crate::platform::uses_portals() {
+        use tauri::Manager;
+        let dir = app.path().app_data_dir().map_err(err)?;
+        let store = super::portal::FileTokenStore(dir.join("remote-desktop.token"));
+        return Ok(Box::new(super::portal::PortalKeys::new(store)));
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = app;
+    Ok(Box::new(EnigoKeys::new()?))
+}
+
 pub struct TauriNotifier<R: Runtime>(pub AppHandle<R>);
 
 impl<R: Runtime> Notifier for TauriNotifier<R> {

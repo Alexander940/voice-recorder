@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Manager, Runtime, State};
 
-use crate::output::{EnigoKeys, OutputMode, Paster, SystemClipboard, TauriNotifier};
+use crate::output::{OutputMode, Paster, SystemClipboard, TauriNotifier, platform_keys};
 use crate::tray::SETTINGS_WINDOW;
 
 pub const DEFAULT_RETENTION_DAYS: u32 = 30;
@@ -153,7 +153,7 @@ pub fn history_deliver(app: AppHandle, id: i64, paste: bool) -> Result<(), Strin
         OutputMode::CopyOnly
     };
     let clipboard = SystemClipboard::new().map_err(|e| e.to_string())?;
-    let keys = EnigoKeys::new().map_err(|e| e.to_string())?;
+    let keys = platform_keys(&app).map_err(|e| e.to_string())?;
     Paster::new(clipboard, keys, TauriNotifier(app.clone()))
         .deliver(&entry.final_text, mode)
         .map(|_| ())

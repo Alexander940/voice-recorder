@@ -11,7 +11,7 @@ export interface LevelEvent {
 }
 
 export type OverlayState =
-  | { kind: "recording"; mode: string; shortcut: string; toggle: boolean }
+  | { kind: "recording"; mode: string; shortcut: string; toggle: boolean; cancel?: string }
   | { kind: "processing"; stage: "transcribing" | "cleaning"; mode: string }
   | { kind: "pasted"; words: number; ms: number; copied: boolean }
   | { kind: "error"; title: string; detail: string; retry: boolean };
@@ -140,7 +140,7 @@ export default function Overlay({ initial = null }: { initial?: OverlayState | n
             <span className="overlay-hint" data-overlay-hint>
               {state.toggle ? "Pulsa " : "Suelta "}
               <span className="mono">{state.shortcut}</span>
-              {" para terminar · Esc para cancelar"}
+              {` para terminar · ${state.cancel ?? "Esc"} para cancelar`}
             </span>
           </>
         )}
