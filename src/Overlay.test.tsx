@@ -80,6 +80,23 @@ describe("Overlay", () => {
     expect(screen.getByText(/para terminar/)).toHaveTextContent("Suelta Ctrl+Alt+Space");
   });
 
+  it("en Wayland la ayuda muestra el atajo de cancelar del portal", () => {
+    render(
+      <Overlay
+        initial={{
+          kind: "recording",
+          mode: "Limpio",
+          shortcut: "Ctrl+Shift+Space",
+          toggle: true,
+          cancel: "Ctrl+Shift+Esc",
+        }}
+      />,
+    );
+    expect(screen.getByText(/para cancelar/)).toHaveTextContent(
+      "Pulsa Ctrl+Shift+Space para terminar · Ctrl+Shift+Esc para cancelar",
+    );
+  });
+
   it("procesando, pegado y error", () => {
     render(<Overlay />);
     act(() => fire("overlay-state", { kind: "processing", stage: "transcribing", mode: "Email" }));

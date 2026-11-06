@@ -157,6 +157,7 @@ impl AppSettings {
         };
         let mut s: AppSettings = serde_json::from_value(migrated).unwrap_or_default();
         s.version = SETTINGS_VERSION;
+        s.hotkey.shortcut = migrate_linux_shortcut(&s.hotkey.shortcut).into();
         s
     }
 
@@ -177,6 +178,16 @@ impl AppSettings {
             return Err("El idioma debe ser un código de dos letras (es, en…)".into());
         }
         Ok(())
+    }
+}
+
+/// Issue #38: en Linux el atajo guardado por las versiones ≤ 0.1.2 era
+/// `Ctrl+Alt+Space`, que VMware intercepta. Se pasa al nuevo por defecto.
+fn migrate_linux_shortcut(shortcut: &str) -> &str {
+    if cfg!(target_os = "linux") && shortcut == crate::hotkey::LEGACY_LINUX_SHORTCUT {
+        default_shortcut()
+    } else {
+        shortcut
     }
 }
 
@@ -289,6 +300,21 @@ mod tests {
         assert_eq!(s.audio.device.as_deref(), Some("USB Mic"));
         assert_eq!(s.audio.max_duration_secs, 300);
         assert_eq!(s.hotkey, HotkeySettings::default());
+    }
+
+    #[test]
+    fn linux_legacy_ctrl_alt_space_moves_to_the_new_default() {
+        if cfg!(target_os = "linux") {
+            assert_eq!(migrate_linux_shortcut("Ctrl+Alt+Space"), default_shortcut());
+        } else {
+            assert_eq!(migrate_linux_shortcut("Ctrl+Alt+Space"), "Ctrl+Alt+Space");
+        }
+        assert_eq!(migrate_linux_shortcut("Ctrl+Alt+R"), "Ctrl+Alt+R");
+        let s = AppSettings::from_json(serde_json::json!({
+            "version": SETTINGS_VERSION,
+            "hotkey": { "shortcut": "Ctrl+Alt+Space" }
+        }));
+        assert_eq!(s.hotkey.shortcut, migrate_linux_shortcut("Ctrl+Alt+Space"));
     }
 
     #[test]

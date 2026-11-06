@@ -1,5 +1,15 @@
 # Changelog
 
+## Sin publicar
+
+### Linux
+
+- **Wayland:** el atajo global y el pegado del texto no funcionaban (solo había soporte X11). Ahora el atajo se registra con el portal XDG `GlobalShortcuts` y el texto se pega con el portal `RemoteDesktop`; GNOME pide confirmarlos la primera vez. Cancelar es `Ctrl+Shift+Esc` en Wayland. Si se deniega el teclado, el texto queda en el portapapeles y la app avisa. (#38)
+- El atajo por defecto en Linux pasa a `Ctrl+Shift+Space` y el de modos a `Ctrl+Shift+M`: `Ctrl+Alt` es la tecla de host de VMware y no llegaba a la máquina virtual. Los ajustes guardados con `Ctrl+Alt+Space` se migran solos.
+- **Wayland:** el overlay se oculta antes de pegar y no muestra «Pegado»: al aparecer toma el foco del teclado y el `Ctrl+V` llegaba al overlay en vez de a la app con el cursor. (#38)
+- El portapapeles se mantiene abierto durante toda la vida del proceso: en X11 (y en GNOME Wayland, que no ofrece `data-control` y pasa por XWayland) `arboard` puede perder el contenido al soltar el último handle si no hay gestor de portapapeles.
+- `libssl-dev` se añade a los requisitos de compilación en Linux.
+
 ## v0.1.2
 
 ### Dictados largos

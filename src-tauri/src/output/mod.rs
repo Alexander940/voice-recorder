@@ -1,8 +1,10 @@
 //! Entrega del texto: portapapeles y pegado en la app activa (HU-06).
 
+#[cfg(target_os = "linux")]
+pub mod portal;
 mod system;
 
-pub use system::{EnigoKeys, SystemClipboard, TauriNotifier};
+pub use system::{EnigoKeys, SystemClipboard, TauriNotifier, platform_keys};
 
 use std::thread;
 use std::time::Duration;
@@ -40,6 +42,12 @@ impl<K: KeySender> KeySender for Result<K, OutputError> {
             Ok(keys) => keys.paste(),
             Err(e) => Err(e.clone()),
         }
+    }
+}
+
+impl KeySender for Box<dyn KeySender> {
+    fn paste(&mut self) -> Result<(), OutputError> {
+        (**self).paste()
     }
 }
 
