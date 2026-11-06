@@ -97,3 +97,16 @@ Interrumpir al agente; o crear `docs/loops-history/DISABLED`, que se comprueba a
 **Solución.** Antes de usar cualquier portal, la app se registra con `org.freedesktop.host.portal.Registry` (`ashpd::register_host_app`, xdg-desktop-portal ≥ 1.20). El registro exige que exista `<app id>.desktop`, así que si no lo hay en ningún directorio XDG la app crea uno oculto (`NoDisplay=true`) en `~/.local/share/applications/`. Esto cubre también el AppImage, que no instala ningún `.desktop`.
 
 **Desviación de implementación.** El pegado usa `ashpd` con el portal `RemoteDesktop` directamente, en vez de la feature `libei` de `enigo`: así el backend se elige en tiempo de ejecución y la ruta X11 queda intacta (objetivo 3).
+
+## Enmienda 2 (2026-11-06): el overlay roba el foco en Wayland
+> **Status:** aplicada tras la primera ronda fallida de la checklist 2.4; no cambia objetivo, oráculo ni criterios de salida.
+
+**Fallo reportado por el usuario (ronda 1 de la checklist).** El atajo ya funciona, pero al terminar la grabación el overlay dice «Pegado» al instante y el texto no aparece en la app ni queda en el portapapeles (lo segundo es normal: la app restaura el portapapeles anterior 250 ms después de pegar).
+
+**Diagnóstico (reproducible sin micrófono).** Con una sonda independiente (`arboard` + portal `RemoteDesktop` enviando `Ctrl+V` y `Enter` a un `zenity --entry`): el pegado funciona en general y tras cualquier combinación de modificadores, pero falla exactamente en las pulsaciones de `Ctrl+Shift+Space` que hacen aparecer el overlay, y vuelve a funcionar en las que lo encuentran ya visible (alternancia fallo/éxito en 4 de 4 intentos; con la app parada siempre funciona). En Wayland xdg-shell no tiene ventanas «sin foco» (`focusable: false` de Tauri es `gtk_window_set_accept_focus`, que el compositor ignora) y GNOME no implementa layer-shell, así que el compositor da el foco al overlay al mapearlo y el `Ctrl+V` del portal llega al overlay.
+
+**Solución.** En Wayland, antes de pegar la app oculta el overlay, espera a que pierda el foco (máx. 500 ms) más 150 ms de margen para que Mutter se lo devuelva a la ventana anterior, y entonces pega. Después no vuelve a mostrar «Pegado»: mapearlo de nuevo le quitaría el foco a la app justo cuando el usuario sigue escribiendo. X11, Windows y macOS no cambian. Documentado en README y CHANGELOG.
+
+**Limitación que queda.** Durante la grabación y el procesado el overlay sí tiene el foco; las teclas que se pulsen en ese intervalo van al overlay. Es aceptable (el usuario está dictando), pero se anota en la PR.
+
+**Hallazgo adicional sobre el portapapeles.** Mutter 50 no anuncia `ext-data-control` ni `wlr-data-control`, así que `arboard` avisa y usa el portapapeles X11 vía XWayland, que Mutter puentea a Wayland: el pegado funciona igual. Que el texto «no quede en el portapapeles» tras pegar es por diseño (la app restaura el contenido anterior 250 ms después). Como medida preventiva, documentada por `arboard` para X11 sin gestor de portapapeles, la app conserva un handle del portapapeles toda la vida del proceso; en esta VM no se pudo reproducir la pérdida (el test manual `clipboard_survives_drop` pasa con y sin el handle), así que no es la causa del fallo reportado.

@@ -88,6 +88,12 @@ pub struct DictationResult {
 const PASTED_VISIBLE: Duration = Duration::from_millis(1500);
 const ERROR_VISIBLE: Duration = Duration::from_secs(6);
 
+/// En Wayland, cuánto se espera como máximo a que el overlay pierda el foco
+/// tras ocultarlo, y el margen extra para que el compositor se lo devuelva a
+/// la app anterior antes de pegar.
+const FOCUS_RETURN_TIMEOUT: Duration = Duration::from_millis(500);
+const FOCUS_RETURN_GRACE: Duration = Duration::from_millis(150);
+
 pub fn word_count(text: &str) -> usize {
     text.split_whitespace().count()
 }
@@ -604,10 +610,11 @@ fn resume_long<R: Runtime>(app: &AppHandle<R>, mut pending: LongPending) {
         llm_latency_ms: text.llm_ms,
     };
     match deliver(app, &p, &out, pending.total_ms) {
-        Ok(state) => {
+        Ok(Some(state)) => {
             set_overlay(app, state);
             hide_overlay_after(app, PASTED_VISIBLE);
         }
+        Ok(None) => hide_overlay(app),
         Err(e) => {
             let _ = tray::apply(app, TrayEvent::Error);
             report(app, &e, false);
@@ -655,16 +662,18 @@ fn transcribe_and_deliver<R: Runtime>(
     else {
         return Ok(None);
     };
-    deliver(app, &p, &out, audio_ms(wav)).map(Some)
+    deliver(app, &p, &out, audio_ms(wav))
 }
 
-/// Guarda en el historial, pega (o copia) y avisa del resultado.
+/// Guarda en el historial, pega (o copia) y avisa del resultado. Devuelve el
+/// estado final del overlay, o `None` si en Wayland hubo que ocultarlo para
+/// pegar y no debe volver a aparecer (véase [`yield_focus_for_paste`]).
 fn deliver<R: Runtime>(
     app: &AppHandle<R>,
     p: &Pipeline,
     out: &PipelineOutput,
     duration_ms: u64,
-) -> Result<OverlayState, AppError> {
+) -> Result<Option<OverlayState>, AppError> {
     let mode = &p.mode;
     // El texto dictado nunca debe aparecer en los logs.
     let redactions = app.state::<Redactions>();
@@ -690,6 +699,7 @@ fn deliver<R: Runtime>(
     // Si el teclado no se puede abrir (macOS sin Accesibilidad, Wayland sin
     // permiso del portal), el texto se queda en el portapapeles en lugar de perderse.
     let keys = platform_keys(app);
+    let yielded = !p.copy_only && yield_focus_for_paste(app);
     let delivery = Paster::new(clipboard, keys, TauriNotifier(app.clone())).deliver(
         &out.text,
         if p.copy_only {
@@ -717,11 +727,41 @@ fn deliver<R: Runtime>(
             processing_ms,
         },
     );
-    Ok(OverlayState::Pasted {
+    if yielded {
+        // Volver a mostrarlo le quitaría el foco a la app que acaba de recibir
+        // el texto justo cuando el usuario sigue escribiendo.
+        return Ok(None);
+    }
+    Ok(Some(OverlayState::Pasted {
         words: word_count(&out.text),
         ms: processing_ms,
         copied: delivery == Delivery::InClipboard,
-    })
+    }))
+}
+
+/// En Wayland el compositor da el foco del teclado al overlay al aparecer
+/// (xdg-shell no tiene ventanas "sin foco" y GNOME no implementa layer-shell),
+/// así que el Ctrl+V del portal iría al overlay y no a la app anterior
+/// (issue #38). Antes de pegar se oculta y se espera a que el foco vuelva.
+/// Devuelve `true` si se ocultó.
+fn yield_focus_for_paste<R: Runtime>(app: &AppHandle<R>) -> bool {
+    if !crate::platform::uses_portals() {
+        return false;
+    }
+    let Some(overlay) = app.get_webview_window(OVERLAY_WINDOW) else {
+        return false;
+    };
+    let started = Instant::now();
+    hide_overlay(app);
+    while overlay.is_focused().unwrap_or(false) && started.elapsed() < FOCUS_RETURN_TIMEOUT {
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    std::thread::sleep(FOCUS_RETURN_GRACE);
+    tracing::debug!(
+        elapsed_ms = started.elapsed().as_millis() as u64,
+        "overlay: foco cedido antes de pegar"
+    );
+    true
 }
 
 /// WAV PCM de 16 bits a 16 kHz: 32 bytes por milisegundo tras la cabecera.
